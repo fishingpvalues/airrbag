@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.1](https://github.com/fishingpvalues/airrbag/compare/v0.3.0...v0.3.1) (2026-10-04)
+
+
+### Bug Fixes
+
+* **config:** judge inline secrets on the parsed config ([#9](https://github.com/fishingpvalues/airrbag/issues/9)) ([f9c1224](https://github.com/fishingpvalues/airrbag/commit/f9c122411e545fbfaf0b62acf01a61c1bbfcd3de))
+
 ## [0.3.0](https://github.com/fishingpvalues/airrbag/compare/v0.2.0...v0.3.0) (2026-10-04)
 
 
