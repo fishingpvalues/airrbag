@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0](https://github.com/fishingpvalues/airrbag/compare/v0.3.1...v0.4.0) (2026-10-04)
+
+
+### Features
+
+* **proxy:** /airrbag redirects to the dashboard ([#11](https://github.com/fishingpvalues/airrbag/issues/11)) ([1d7bf06](https://github.com/fishingpvalues/airrbag/commit/1d7bf0697387a9ac796212602f4e58c2e925a07e))
+
 ## [0.3.1](https://github.com/fishingpvalues/airrbag/compare/v0.3.0...v0.3.1) (2026-10-04)
 
 
