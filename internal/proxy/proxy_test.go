@@ -460,3 +460,20 @@ func TestGuardTorrentEvidenceOverridesUnknownMode(t *testing.T) {
 		}
 	}
 }
+
+func TestAliasRedirectsToDashboard(t *testing.T) {
+	s := newServer(t, newUpstream(t), config.Guard{})
+	for _, p := range []string{"/airrbag", "/airrbag/"} {
+		rec := do(t, s, http.MethodGet, p, "", nil)
+		if rec.Code != http.StatusFound || rec.Header().Get("Location") != Prefix+"/" {
+			t.Fatalf("%s: got %d %q, want 302 to %s/", p, rec.Code, rec.Header().Get("Location"), Prefix)
+		}
+	}
+	// Anything else under the alias is the *Arr's, untouched.
+	if rec := do(t, s, http.MethodGet, "/airrbag/x", "", nil); rec.Code == http.StatusFound && rec.Header().Get("Location") == Prefix+"/" {
+		t.Fatal("/airrbag/x must not be redirected")
+	}
+	if rec := do(t, s, http.MethodPost, "/airrbag", "", nil); rec.Code == http.StatusFound {
+		t.Fatal("POST /airrbag must not be redirected")
+	}
+}
