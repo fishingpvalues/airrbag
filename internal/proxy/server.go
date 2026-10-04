@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
-	_ "embed"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -23,15 +22,13 @@ import (
 	"github.com/fishingpvalues/airrbag/internal/arr"
 	"github.com/fishingpvalues/airrbag/internal/config"
 	"github.com/fishingpvalues/airrbag/internal/engine"
+	"github.com/fishingpvalues/airrbag/internal/hub"
 	"github.com/fishingpvalues/airrbag/internal/metrics"
 	"github.com/fishingpvalues/airrbag/internal/verdict"
 )
 
 // Prefix is the reserved path segment for Airrbag's own endpoints.
 const Prefix = "/__airrbag"
-
-//go:embed page.html
-var listsPage []byte
 
 // Options configure a Server.
 type Options struct {
@@ -49,7 +46,13 @@ type Options struct {
 	Transport http.RoundTripper
 	// AuthClient checks credentials against the upstream (tests may override).
 	AuthClient *http.Client
-	Health     func(ctx context.Context) map[string]string
+	// Health reports download-client reachability; fresh bypasses its cache.
+	Health func(ctx context.Context, fresh bool) map[string]string
+	// Listen is the instance's listen address, shown on the dashboard.
+	Listen string
+	// Hub is shared by every instance of the process. When nil the server
+	// gets a private one (tests, single-instance use).
+	Hub *hub.Hub
 }
 
 // Server serves one *Arr instance.
@@ -59,6 +62,7 @@ type Server struct {
 	rp      *httputil.ReverseProxy
 	auth    *authCache
 	grants  *grantStore
+	hub     *hub.Hub
 }
 
 // maxInjectBody caps how much HTML is buffered for injection.
@@ -92,6 +96,14 @@ func New(o Options) *Server {
 		ttl = 2 * time.Minute
 	}
 	s.grants = newGrantStore(ttl)
+	s.hub = o.Hub
+	if s.hub == nil {
+		s.hub = hub.New(o.Version, nil)
+	}
+	s.hub.Register(&hub.Instance{
+		Name: o.Name, App: o.Shape.App, AppVersion: o.Status.Version, Listen: o.Listen,
+		Engine: o.Engine, Health: o.Health,
+	})
 	return s
 }
 
@@ -242,6 +254,7 @@ func (s *Server) guard(w http.ResponseWriter, r *http.Request) bool {
 	if override != "" {
 		s.o.Log.Info("guard override", "instance", s.o.Name, "path", r.URL.Path, "reason", override)
 		s.o.Metrics.Add("airrbag_guard_overridden_total", 1, "instance", s.o.Name)
+		s.record(r, hub.Overridden, "delete confirmed despite the guard", nil, override)
 		return false
 	}
 	// Unauthenticated requests are the *Arr's to reject; never compute or
@@ -255,13 +268,20 @@ func (s *Server) guard(w http.ResponseWriter, r *http.Request) bool {
 	if err != nil {
 		if s.o.Guard.FailClosedEnabled() && !s.o.Guard.DryRun {
 			s.o.Metrics.Add("airrbag_guard_blocked_total", 1, "instance", s.o.Name, "reason", "error")
+			s.record(r, hub.ErrorClosed, "could not verify: "+err.Error(), nil, "")
+			msg := "airrbag: could not verify this delete (" + err.Error() + "). Retry, or confirm in the airrbag dialog."
 			writeJSON(w, http.StatusServiceUnavailable, map[string]any{
-				"error":    "airrbag could not verify this delete: " + err.Error(),
-				"override": "retry after confirming in the Airrbag dialog, or send X-Airrbag-Override: <reason>",
+				// message/description: the Servarr error shape the *Arr UIs render.
+				"message":     msg,
+				"description": "A download client could not be reached, so airrbag cannot tell whether a private seed is still owed.",
+				"airrbag":     true,
+				"error":       msg,
+				"override":    "retry after confirming in the Airrbag dialog, or send X-Airrbag-Override: <reason>",
 			})
 			return true
 		}
 		s.o.Log.Warn("guard evaluation failed; letting the request through", "err", err)
+		s.record(r, hub.ErrorOpen, "could not verify: "+err.Error(), nil, "")
 		return false
 	}
 	var keep []engine.FileVerdict
@@ -276,14 +296,22 @@ func (s *Server) guard(w http.ResponseWriter, r *http.Request) bool {
 	if s.o.Guard.DryRun {
 		s.o.Log.Warn("guard dry-run: would block delete", "instance", s.o.Name, "path", r.URL.Path, "keep", len(keep))
 		s.o.Metrics.Add("airrbag_guard_dryrun_total", 1, "instance", s.o.Name)
+		s.record(r, hub.WouldBlock, "a private seed is still owed (dry run: passed)", keep, "")
 		return false
 	}
 	s.o.Log.Warn("guard blocked delete", "instance", s.o.Name, "path", r.URL.Path, "keep", len(keep))
 	s.o.Metrics.Add("airrbag_guard_blocked_total", 1, "instance", s.o.Name, "reason", "keep")
+	s.record(r, hub.Blocked, "a private seed is still owed", keep, "")
+	msg := KeepMessage(keep)
 	writeJSON(w, http.StatusConflict, map[string]any{
-		"error":    "airrbag: this delete would break a private-tracker seed that is still owed",
-		"keep":     keep,
-		"override": "confirm in the Airrbag dialog, or repeat with header X-Airrbag-Override: <reason>",
+		// message/description: the Servarr error shape the *Arr UIs render;
+		// airrbag:true lets the injected script recognize its own refusal.
+		"message":     msg,
+		"description": "Deleting now ends a private-tracker seed whose obligation is not met: a hit-and-run.",
+		"airrbag":     true,
+		"error":       msg,
+		"keep":        keep,
+		"override":    "confirm in the Airrbag dialog, or repeat with header X-Airrbag-Override: <reason>",
 	})
 	return true
 }
@@ -332,9 +360,9 @@ func (s *Server) serveOwn(w http.ResponseWriter, r *http.Request, rest string) {
 			http.Redirect(w, r, r.URL.Path+"/", http.StatusFound)
 			return
 		}
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		w.Header().Set("Cache-Control", "no-cache")
-		_, _ = w.Write(listsPage)
+		s.serveShell(w)
+	case rest == "/dashboard.js" || rest == "/dashboard.css" || strings.HasPrefix(rest, "/static/"):
+		s.serveAsset(w, strings.TrimPrefix(rest, "/"))
 	case rest == "/health":
 		s.health(w, r)
 	case rest == "/metrics":
@@ -363,7 +391,7 @@ func (s *Server) health(w http.ResponseWriter, r *http.Request) {
 		h["indexError"] = err.Error()
 	}
 	if s.o.Health != nil {
-		h["clients"] = s.o.Health(r.Context())
+		h["clients"] = s.o.Health(r.Context(), false)
 	}
 	writeJSON(w, http.StatusOK, h)
 }
@@ -405,6 +433,13 @@ func (s *Server) serveAPI(w http.ResponseWriter, r *http.Request, p string) {
 		"/check":   {http.MethodPost, s.apiCheck},
 		"/grant":   {http.MethodPost, s.apiGrant},
 		"/lists":   {http.MethodGet, s.apiLists},
+
+		"/dashboard/overview": {http.MethodGet, s.apiOverview},
+		"/dashboard/files":    {http.MethodGet, s.apiDashboardFiles},
+		"/dashboard/guard":    {http.MethodGet, s.apiGuard},
+		"/dashboard/settings": {http.MethodGet, s.apiSettings},
+		"/dashboard/clients":  {http.MethodGet, s.apiClients},
+		"/dashboard/system":   {http.MethodGet, s.apiSystem},
 	}
 	rt, ok := routes[p]
 	if !ok || r.Method != rt.method {

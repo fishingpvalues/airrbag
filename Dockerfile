@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-# 1. Browser script (TypeScript -> one minified IIFE).
+# 1. Browser code: the injected script and the dashboard (TypeScript -> minified bundles).
 FROM --platform=$BUILDPLATFORM node:24-alpine AS web
 WORKDIR /src/web
 COPY web/package.json web/package-lock.json ./
@@ -17,7 +17,7 @@ WORKDIR /src
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
-COPY --from=web /src/internal/webassets/dist/airrbag.js internal/webassets/dist/airrbag.js
+COPY --from=web /src/internal/webassets/dist/ internal/webassets/dist/
 RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH \
     go build -trimpath -ldflags="-s -w -X main.version=${VERSION}" -o /out/airrbag ./cmd/airrbag
 

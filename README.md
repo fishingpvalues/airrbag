@@ -1,3 +1,5 @@
+<p align="center"><img src="assets/logo.svg" width="112" alt=""></p>
+
 # airrbag
 
 [![Release](https://img.shields.io/github/v/release/fishingpvalues/airrbag?sort=semver)](https://github.com/fishingpvalues/airrbag/releases)
@@ -128,6 +130,12 @@ files, the tracker and the seeding time, and asks for an explicit confirmation.
 Confirming registers a single-use grant for exactly that request. A
 `frees-nothing` delete gets a short note instead.
 
+If a delete reaches the server-side guard anyway (the check could not run,
+another tab, a race), the refusal is not left to the *Arr UI, whose delete
+handlers show nothing for a failed request: the script recognises the guard's
+409 and opens the same dialog with the server's message and the option to
+confirm and repeat the request.
+
 The script listens for the DELETE request itself rather than for particular
 buttons, so the check does not depend on how each app draws its dialogs. The
 panel falls back to a floating corner badge when a UI update moves the page
@@ -136,15 +144,43 @@ header.
 ### On the server
 
 The same check runs on every DELETE that passes through the proxy, whatever
-sent it. A refused request gets `409 Conflict` with the files and the reasons.
+sent it. A refused request gets `409 Conflict` in the Servarr error shape, so
+any client that shows *Arr errors shows a useful line:
+
+```json
+{
+  "message": "airrbag: kept, this file is the seeding data of a private torrent on tracker.example (seeded 3d 4h of 14d required). Delete the torrent first or confirm in the airrbag dialog.",
+  "description": "Deleting now ends a private-tracker seed whose obligation is not met: a hit-and-run.",
+  "airrbag": true,
+  "keep": [ ... ]
+}
+```
+
 If the check itself cannot run (the *Arr or a client does not answer) and
 `guard.fail_closed` is on, the answer is `503`. Nothing else is ever blocked.
 
 API clients can override deliberately with `X-Airrbag-Override: <reason>`.
 The reason is logged.
 
-`/__airrbag/` lists the whole library as Safe to delete, Frees nothing, Keep
-and Unknown, with sizes.
+### Dashboard
+
+`/__airrbag/` on any listener opens the dashboard, drawn like the *Arr UIs
+(sidebar, page toolbar, dense tables, the same labels) in dark or light,
+following the system setting:
+
+- **Overview**: Keep, Frees nothing, Safe to delete and Unknown across every
+  instance, with the space a delete would free, and client health.
+- **Files**: every library file with its source, indexer, tracker, ratio,
+  seeding time against the tracker's requirement and the verdict; sortable,
+  filterable by instance, verdict and source, searchable.
+- **Guard**: recent blocked, would-block (dry run) and overridden deletes.
+- **Settings**: the effective configuration, secrets shown only as set or not
+  set, and a client connectivity test.
+- **System**: version, uptime, health and metrics endpoints.
+
+The dashboard is read-only and uses the same *Arr sign-in as the API. Anyone
+who can sign in to one proxied *Arr sees the file lists of all instances the
+process fronts.
 
 ## Configuration
 
@@ -258,6 +294,12 @@ Under each listener, next to the proxied *Arr. Requires *Arr credentials.
 | `POST /__airrbag/api/grant` | Single-use confirmation for one DELETE |
 | `GET /__airrbag/api/lists` | Whole-library grouping |
 | `GET /__airrbag/api/info` | App, guard state, version |
+| `GET /__airrbag/api/dashboard/overview` | Counts and sizes per verdict and instance, client health |
+| `GET /__airrbag/api/dashboard/files` | Paged, sorted, filtered files of all instances (`instance`, `verdict`, `source`, `q`, `sort`, `dir`, `page`, `pageSize`) |
+| `GET /__airrbag/api/dashboard/guard` | Recent guard decisions |
+| `GET /__airrbag/api/dashboard/settings` | Effective configuration, redacted |
+| `GET /__airrbag/api/dashboard/clients?fresh=1` | Download-client connectivity |
+| `GET /__airrbag/api/dashboard/system` | Version, uptime, instances |
 
 ## Development
 

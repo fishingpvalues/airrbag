@@ -27,6 +27,7 @@ import (
 	"github.com/fishingpvalues/airrbag/internal/egress"
 	"github.com/fishingpvalues/airrbag/internal/engine"
 	"github.com/fishingpvalues/airrbag/internal/fsx"
+	"github.com/fishingpvalues/airrbag/internal/hub"
 	"github.com/fishingpvalues/airrbag/internal/metrics"
 	"github.com/fishingpvalues/airrbag/internal/paths"
 	"github.com/fishingpvalues/airrbag/internal/proxy"
@@ -264,6 +265,7 @@ func serve(cfgPath string) error {
 		}
 	}
 	pool := &clientPool{egress: allow, torrent: map[string]clients.TorrentClient{}, usenet: map[string]clients.UsenetClient{}}
+	shared := hub.New(version, cfg)
 	script := webassets.Script()
 	if len(script) == 0 {
 		log.Warn("binary built without the browser script; badges and dialogs are disabled (run make web)")
@@ -284,7 +286,7 @@ func serve(cfgPath string) error {
 				errCh <- fmt.Errorf("%s: %w", inst.Name, err)
 			}
 		}()
-		go startInstance(ctx, cfg, inst, g, reg, mapper, pool, met, script, log)
+		go startInstance(ctx, cfg, inst, g, reg, mapper, pool, met, script, shared, log)
 	}
 
 	select {
@@ -301,7 +303,7 @@ func serve(cfgPath string) error {
 }
 
 func startInstance(ctx context.Context, cfg *config.Config, inst config.Instance, g *gate, reg *trackers.Registry,
-	mapper *paths.Mapper, pool *clientPool, met *metrics.Registry, script []byte, log *slog.Logger) {
+	mapper *paths.Mapper, pool *clientPool, met *metrics.Registry, script []byte, shared *hub.Hub, log *slog.Logger) {
 	log = log.With("instance", inst.Name)
 	up, _ := url.Parse(inst.Upstream)
 	rt := pool.egress.Transport(nil)
@@ -332,7 +334,7 @@ func startInstance(ctx context.Context, cfg *config.Config, inst config.Instance
 	g.set(proxy.New(proxy.Options{
 		Name: inst.Name, Upstream: up, Shape: ac.Shape, Status: ac.Status, Engine: eng,
 		Guard: cfg.Guard, Metrics: met, Log: log, Version: version, Script: script, Health: health,
-		Transport: rt,
+		Transport: rt, Listen: inst.Listen, Hub: shared,
 	}))
 
 	refresh := func() {
@@ -357,15 +359,16 @@ func startInstance(ctx context.Context, cfg *config.Config, inst config.Instance
 	}
 }
 
-// healthFunc reports client reachability, cached for 30 seconds.
-func healthFunc(tor map[string]clients.TorrentClient, use map[string]clients.UsenetClient) func(context.Context) map[string]string {
+// healthFunc reports client reachability, cached for 30 seconds unless the
+// caller asks for a fresh check (the dashboard's connectivity test).
+func healthFunc(tor map[string]clients.TorrentClient, use map[string]clients.UsenetClient) func(context.Context, bool) map[string]string {
 	var mu sync.Mutex
 	var last map[string]string
 	var at time.Time
-	return func(ctx context.Context) map[string]string {
+	return func(ctx context.Context, fresh bool) map[string]string {
 		mu.Lock()
 		defer mu.Unlock()
-		if last != nil && time.Since(at) < 30*time.Second {
+		if !fresh && last != nil && time.Since(at) < 30*time.Second {
 			return last
 		}
 		out := map[string]string{}

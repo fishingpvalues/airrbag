@@ -2,6 +2,8 @@
 /airrbag
 /dist/
 internal/webassets/dist/airrbag.js
+internal/webassets/dist/dashboard.js
+internal/webassets/dist/dashboard.css
 coverage.out
 coverage.html
 *.test

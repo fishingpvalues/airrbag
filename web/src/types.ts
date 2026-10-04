@@ -16,6 +16,9 @@ export interface FileVerdict {
   client?: string;
   tracker?: string;
   ratio?: number;
+  requiredRatio?: number;
+  requiredSeedTimeSeconds?: number;
+  obligationMet?: boolean;
   seedingTimeSeconds?: number;
   torrentName?: string;
   torrentState?: string;

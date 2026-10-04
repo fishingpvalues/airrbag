@@ -38,7 +38,10 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: airrbag-js
-          path: internal/webassets/dist/airrbag.js
+          path: |
+            internal/webassets/dist/airrbag.js
+            internal/webassets/dist/dashboard.js
+            internal/webassets/dist/dashboard.css
           if-no-files-found: error
 
   lint:
