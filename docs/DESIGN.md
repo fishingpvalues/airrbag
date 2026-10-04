@@ -178,5 +178,6 @@ and no way for a secret out. The details and the threat model are in
 - **Scrub at the edges.** Secrets are removed from every log record (a slog
   handler), every JSON body (`writeJSON`) and the metrics output, with tests
   that push the key through every endpoint.
-- **Config hygiene at load time.** Group/world-readable configs and
-  placeholder secrets are refused before anything starts.
+- **Config hygiene at load time.** A group/world-readable config that holds
+  an inline secret, and placeholder secrets, are refused before anything
+  starts. A config made only of `${...}` references has nothing to hide.

@@ -227,10 +227,12 @@ stay out of the file:
 - The whole file may be [age](https://age-encryption.org)-encrypted
   (`airrbag.yml.age`); set `AIRRBAG_AGE_IDENTITY_FILE` to the identity.
 
-airrbag refuses to start when the config file is readable by group or others
-(`chmod 600`; `AIRRBAG_ALLOW_INSECURE_CONFIG=1` downgrades this to a warning
-for filesystems without POSIX permissions), and when a key or password is
-still a template value such as `changeme` or `<your api key>`.
+airrbag refuses to start when the config file holds a secret written inline
+and is readable by group or others (`chmod 600` it, or keep every secret a
+`${...}` reference, which can then live in git; `AIRRBAG_ALLOW_INSECURE_CONFIG=1`
+downgrades this to a warning for filesystems without POSIX permissions), and
+when a key or password is still a template value such as `changeme` or
+`<your api key>`.
 
 | Key | Default | Meaning |
 |-----|---------|---------|

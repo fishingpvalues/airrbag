@@ -67,7 +67,13 @@ func TestRefusesReadableConfig(t *testing.T) {
 	}
 	p := writeConfig(t, strings.Replace(minimal, "%s", "abcdef0123456789abcdef", 1), 0o644)
 	if _, err := Load(p); !errors.Is(err, ErrInsecurePerms) {
-		t.Fatalf("0644 config must be refused, got %v", err)
+		t.Fatalf("0644 config with an inline key must be refused, got %v", err)
+	}
+	// Only ${...} references: nothing to hide, readable is fine.
+	t.Setenv("AIRRBAG_T_REF", "refonly0123456789abcdef")
+	refs := writeConfig(t, strings.Replace(minimal, "%s", "${AIRRBAG_T_REF}", 1), 0o644)
+	if c, err := Load(refs); err != nil || c.Instances[0].APIKey != "refonly0123456789abcdef" {
+		t.Fatalf("reference-only config must load even when readable: %v", err)
 	}
 	t.Setenv(InsecurePermsEnv, "1")
 	c, warns, err := LoadWithWarnings(p)

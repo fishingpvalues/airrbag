@@ -13,6 +13,7 @@ import (
 
 	"filippo.io/age"
 	"filippo.io/age/armor"
+	"gopkg.in/yaml.v3"
 )
 
 // Secret references in the config file:
@@ -78,12 +79,14 @@ const InsecurePermsEnv = "AIRRBAG_ALLOW_INSECURE_CONFIG"
 const AgeIdentityEnv = "AIRRBAG_AGE_IDENTITY_FILE"
 
 // ErrInsecurePerms is returned when the config file is readable by group or
-// others while it may contain secrets.
-var ErrInsecurePerms = errors.New("config file is readable by group or others; chmod 600 it (or set " + InsecurePermsEnv + "=1)")
+// others while it contains a secret written inline.
+var ErrInsecurePerms = errors.New("config file contains an inline secret and is readable by group or others; chmod 600 it, move the secret to ${ENV}/${file:...}, or set " + InsecurePermsEnv + "=1")
 
-// checkPerms refuses a config file that group or others can read. The file
-// holds, or points at, every API key and password Airrbag uses.
-func checkPerms(path string) (warn error, err error) {
+// checkPerms refuses a config file that group or others can read while it
+// contains a secret written inline. A file whose secrets are all ${...}
+// references (environment, *_FILE, ${file:}) holds nothing worth hiding and
+// may stay readable, so it can live in a git checkout.
+func checkPerms(path string, raw []byte) (warn error, err error) {
 	if runtime.GOOS == "windows" {
 		return nil, nil
 	}
@@ -94,11 +97,38 @@ func checkPerms(path string) (warn error, err error) {
 	if st.Mode().Perm()&0o077 == 0 {
 		return nil, nil
 	}
+	if !hasInlineSecret(raw) {
+		return nil, nil
+	}
 	e := fmt.Errorf("%s (mode %04o): %w", path, st.Mode().Perm(), ErrInsecurePerms)
 	if os.Getenv(InsecurePermsEnv) == "1" {
 		return e, nil
 	}
 	return nil, e
+}
+
+var onlyRef = regexp.MustCompile(`^\s*\$\{(file:[^}]+|[A-Za-z_][A-Za-z0-9_]*)\}\s*$`)
+
+// hasInlineSecret reports whether any secret field of the unexpanded config
+// holds a literal value instead of a ${...} reference. An unparseable file
+// counts as having one (fail closed); Parse reports the syntax error later.
+func hasInlineSecret(raw []byte) bool {
+	var c Config
+	if err := yaml.Unmarshal(raw, &c); err != nil {
+		return true
+	}
+	inline := func(v string) bool { return strings.TrimSpace(v) != "" && !onlyRef.MatchString(v) }
+	for _, in := range c.Instances {
+		if inline(in.APIKey) {
+			return true
+		}
+	}
+	for _, cl := range c.Clients {
+		if inline(cl.Password) || inline(cl.APIKey) {
+			return true
+		}
+	}
+	return inline(c.Auth.GrantSecret)
 }
 
 var ageHeader = []byte("age-encryption.org/v1")

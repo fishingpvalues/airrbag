@@ -239,13 +239,6 @@ func Load(path string) (*Config, error) {
 // insecure-permission override) for the caller to log.
 func LoadWithWarnings(path string) (*Config, []string, error) {
 	var warnings []string
-	warn, err := checkPerms(path)
-	if err != nil {
-		return nil, nil, err
-	}
-	if warn != nil {
-		warnings = append(warnings, warn.Error())
-	}
 	raw, err := os.ReadFile(path) //nolint:gosec // operator-chosen config path
 	if err != nil {
 		return nil, nil, fmt.Errorf("read config: %w", err)
@@ -253,6 +246,13 @@ func LoadWithWarnings(path string) (*Config, []string, error) {
 	raw, err = maybeDecrypt(raw)
 	if err != nil {
 		return nil, nil, err
+	}
+	warn, err := checkPerms(path, raw)
+	if err != nil {
+		return nil, nil, err
+	}
+	if warn != nil {
+		warnings = append(warnings, warn.Error())
 	}
 	expanded, err := ExpandSecrets(string(raw))
 	if err != nil {

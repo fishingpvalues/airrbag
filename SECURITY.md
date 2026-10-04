@@ -46,7 +46,7 @@ a VPN or a tailnet, like the *Arr behind it, and not for the public internet.
 | Being "local" to the *Arr | the real client | `X-Forwarded-For`/`Forwarded`/`X-Real-IP` only from `auth.trusted_proxies` |
 | Overriding the delete guard | the signed-in user who confirmed the dialog | grant bound to identity + method + URL + body, single use, `guard.grant_ttl` (60 s); CSRF: same origin and `X-Airrbag-Request: 1`; raw override header off by default |
 | Seeing verdicts and file lists | signed-in users of *that* instance | `dashboard.cross_instance` off by default |
-| Secrets | nobody | never in responses; scrubbed from logs, errors and metrics; config must be `chmod 600`; Docker secrets, `${file:}` and age encryption supported; placeholders refused |
+| Secrets | nobody | never in responses; scrubbed from logs, errors and metrics; a config with inline secrets must be `chmod 600`; Docker secrets, `${file:}` and age encryption supported; placeholders refused |
 | Outbound requests | only to configured/discovered *Arrs and clients | host allowlist on every HTTP client, redirects included; build fails if code bypasses it |
 | Brute force | - | 30 failed sign-ins per minute per address, then `429` |
 
@@ -83,7 +83,8 @@ a VPN or a tailnet, like the *Arr behind it, and not for the public internet.
 
 ## Hardening checklist
 
-- `chmod 600` the config, owned by the uid the container runs as.
+- Keep secrets out of the config (`${NAME}` with `NAME_FILE`, `${file:...}`)
+  or `chmod 600` it, owned by the uid the container runs as.
 - Pass secrets as Docker secrets (`NAME_FILE`) or `${file:...}`, or encrypt
   the config with age.
 - `read_only: true`, `cap_drop: [ALL]`, `security_opt: [no-new-privileges:true]`.
