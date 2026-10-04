@@ -45,6 +45,7 @@ instances:
 log_level: debug
 YAML
 
+chmod 600 "$WORK/airrbag.yml"
 go build -o "$WORK/airrbag" ./cmd/airrbag
 IT_ARR_KEY="$KEY" "$WORK/airrbag" serve -config "$WORK/airrbag.yml" > "$WORK/airrbag.log" 2>&1 &
 AIRRBAG_PID=$!

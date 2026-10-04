@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/fishingpvalues/airrbag/internal/config"
 	"github.com/fishingpvalues/airrbag/internal/engine"
 	"github.com/fishingpvalues/airrbag/internal/hub"
 	"github.com/fishingpvalues/airrbag/internal/verdict"
@@ -174,7 +175,7 @@ func (s *Server) apiOverview(w http.ResponseWriter, r *http.Request) {
 		Bytes  map[verdict.Kind]int64 `json:"bytes"`
 		Files  int                    `json:"files"`
 	}{map[verdict.Kind]int{}, map[verdict.Kind]int64{}, 0}
-	for _, i := range s.hub.Instances() {
+	for _, i := range s.visibleInstances() {
 		sum := s.summarize(r.Context(), i)
 		for k, v := range sum.Counts {
 			totals.Counts[k] += v
@@ -325,7 +326,7 @@ func (fq filesQuery) match(row fileRow) bool {
 // collectFiles gathers the matching rows of every (or one) instance from the
 // cached evaluations, starting a refresh where one is due.
 func (s *Server) collectFiles(ctx context.Context, fq filesQuery) (rows []fileRow, computing bool, oldest *time.Time) {
-	for _, i := range s.hub.Instances() {
+	for _, i := range s.visibleInstances() {
 		if (fq.instance != "" && i.Name != fq.instance) || i.Engine == nil {
 			continue
 		}
@@ -379,7 +380,7 @@ func (s *Server) apiDashboardFiles(w http.ResponseWriter, r *http.Request) {
 // --- guard, settings, clients, system ------------------------------------------
 
 func (s *Server) apiGuard(w http.ResponseWriter, _ *http.Request) {
-	ev := s.hub.Events()
+	ev := s.visibleEvents()
 	counts := map[hub.Decision]int{}
 	for _, e := range ev {
 		counts[e.Decision]++
@@ -391,13 +392,13 @@ func (s *Server) apiGuard(w http.ResponseWriter, _ *http.Request) {
 }
 
 func (s *Server) apiSettings(w http.ResponseWriter, _ *http.Request) {
-	writeJSON(w, http.StatusOK, s.hub.Config())
+	writeJSON(w, http.StatusOK, s.visibleConfig())
 }
 
 func (s *Server) apiClients(w http.ResponseWriter, r *http.Request) {
 	fresh := r.URL.Query().Get("fresh") == "1"
 	out := map[string]map[string]string{}
-	for _, i := range s.hub.Instances() {
+	for _, i := range s.visibleInstances() {
 		if i.Health == nil {
 			out[i.Name] = map[string]string{}
 			continue
@@ -418,7 +419,7 @@ func (s *Server) apiSystem(w http.ResponseWriter, _ *http.Request) {
 		IndexError   string     `json:"indexError,omitempty"`
 	}
 	var list []inst
-	for _, i := range s.hub.Instances() {
+	for _, i := range s.visibleInstances() {
 		it := inst{Name: i.Name, App: i.App, AppVersion: i.AppVersion, Listen: i.Listen}
 		if i.Engine != nil {
 			n, at, err := i.Engine.IndexStats()
@@ -442,4 +443,49 @@ func (s *Server) apiSystem(w http.ResponseWriter, _ *http.Request) {
 		"instance": s.o.Name, "metricsPath": s.urlBase + Prefix + "/metrics", "healthPath": s.urlBase + Prefix + "/health",
 		"instances": list,
 	})
+}
+
+// visibleInstances are the instances this dashboard may show: every one with
+// dashboard.cross_instance, otherwise only its own. Signing in to Radarr
+// should not reveal Sonarr's library.
+func (s *Server) visibleInstances() []*hub.Instance {
+	all := s.hub.Instances()
+	if s.o.Dashboard.CrossInstance {
+		return all
+	}
+	for _, i := range all {
+		if i.Name == s.o.Name {
+			return []*hub.Instance{i}
+		}
+	}
+	return nil
+}
+
+func (s *Server) visibleEvents() []hub.GuardEvent {
+	ev := s.hub.Events()
+	if s.o.Dashboard.CrossInstance {
+		return ev
+	}
+	out := make([]hub.GuardEvent, 0, len(ev))
+	for _, e := range ev {
+		if e.Instance == s.o.Name {
+			out = append(out, e)
+		}
+	}
+	return out
+}
+
+func (s *Server) visibleConfig() config.Redacted {
+	c := s.hub.Config()
+	if s.o.Dashboard.CrossInstance {
+		return c
+	}
+	var own []config.RedactedInstance
+	for _, in := range c.Instances {
+		if in.Name == s.o.Name {
+			own = append(own, in)
+		}
+	}
+	c.Instances = own
+	return c
 }

@@ -2,8 +2,12 @@
 
 Airrbag's own endpoints live under each listener, next to the proxied *Arr,
 at `/__airrbag/`. They require the same credentials as the *Arr (session
-cookie, `X-Api-Key` header or `apikey` query parameter) and never reveal a
-verdict to anyone else.
+cookie, `X-Api-Key` header or `apikey` query parameter, or a trusted SSO
+header) and never reveal a verdict to anyone else. Unauthenticated calls get
+`401`; 30 failures a minute from one address get `429`.
+
+Every `POST` must carry `X-Airrbag-Request: 1` and, when the browser sends
+them, a same-origin `Origin` and `Sec-Fetch-Site`; otherwise `403` (CSRF).
 
 | Route | Purpose |
 |-------|---------|
@@ -13,8 +17,8 @@ verdict to anyone else.
 | `POST /__airrbag/api/grant` | Single-use confirmation for one DELETE |
 | `GET /__airrbag/api/lists` | Whole-library grouping |
 | `GET /__airrbag/api/info` | App, guard state, version |
-| `GET /__airrbag/health` | Liveness and download-client reachability |
-| `GET /__airrbag/metrics` | Prometheus text format |
+| `GET /__airrbag/health` | `{"status":"ok"}` for anyone; details (version, index, client reachability) when signed in |
+| `GET /__airrbag/metrics` | Prometheus text format; signed-in only unless `metrics.public` |
 
 ## File verdict
 
@@ -88,7 +92,7 @@ A DELETE the guard refuses answers `409 Conflict`:
   "reason": "keep",
   "keep": [ { "...file verdict..." } ],
   "unknown": [],
-  "override": "confirm in the Airrbag dialog, or repeat with header X-Airrbag-Override: <reason>"
+  "override": "confirm in the Airrbag dialog"
 }
 ```
 
@@ -104,7 +108,10 @@ When the check itself cannot run and `guard.fail_closed` is on, the answer is
 
 - `POST /__airrbag/api/grant` with `{"method":"DELETE","url":"/api/v3/moviefile/12","reason":"..."}`
   registers a single-use grant for exactly that request (method, path, query,
-  body hash), valid for `guard.grant_ttl`.
-- `X-Airrbag-Override: <reason>` or `?airrbagOverride=<reason>` on the DELETE
-  itself. The reason is logged; the query parameter is removed before the
-  request reaches the *Arr.
+  body hash) **and that signed-in caller**, valid for `guard.grant_ttl` (60 s).
+  The DELETE must come with the same credentials (the *Arr UI's API key, or
+  the same session).
+- Only with `guard.allow_override_header: true`: `X-Airrbag-Override: <reason>`
+  or `?airrbagOverride=<reason>` on the DELETE itself, from a signed-in caller.
+  Otherwise both are ignored. Either way they are removed before the request
+  reaches the *Arr.

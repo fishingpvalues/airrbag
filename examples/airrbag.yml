@@ -64,7 +64,28 @@ guard:
   # fail_closed: true  # a check that cannot run answers 503 instead of passing
   # unknown: confirm   # no provenance evidence: confirm (ask once) | block | allow
   #                    # torrent evidence without a visible seed is always kept
-  # grant_ttl: 2m      # how long a confirmation in the browser dialog lasts
+  # grant_ttl: 60s     # how long a confirmation in the browser dialog lasts (max 10m)
+  # allow_override_header: false  # honor X-Airrbag-Override from signed-in API callers
+
+# Who may use Airrbag's own pages and API. By default exactly whoever the *Arr
+# lets in: Airrbag has no login of its own and asks the *Arr.
+# auth:
+#   # Reverse proxies in front of Airrbag (CIDR or IP). Only from these is
+#   # X-Forwarded-For believed; without it every client is its TCP peer.
+#   # Behind `tailscale serve` or Traefik on the same host: the docker gateway.
+#   trusted_proxies: [172.22.0.1]
+#   # SSO / 2FA: an identity header your proxy (Authelia, Authentik,
+#   # oauth2-proxy, Tailscale serve) sets after its own login. Requires
+#   # trusted_proxies; ignored from anyone else.
+#   forward_auth_header: Remote-User
+#   # Keys the grant HMAC. Empty: random per start (recommended).
+#   grant_secret: ${AIRRBAG_GRANT_SECRET}
+
+# dashboard:
+#   cross_instance: false   # true: any instance's dashboard shows all instances
+
+# metrics:
+#   public: false           # true: /metrics without authentication
 
 # cache_ttl: 5m
 # history_limit: 100000
