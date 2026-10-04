@@ -76,6 +76,30 @@ upstreams and the download clients they list, wraps every outbound transport,
 redirects included. A source-scan test fails the build on code that would
 bypass it (default client, package-level `http.Get`).
 
+**Dashboard: Preact, bundled and embedded.** The dashboard needs sortable,
+filterable, paged tables and a few stateful views; hand-written DOM code (what
+the injected script uses, to stay tiny and dependency-free) would grow into an
+ad-hoc framework, and server-rendered templates plus htmx would put view logic
+in two languages. Preact gives components and hooks in about 4 KB, esbuild
+bundles it with the TypeScript into one JS and one CSS file, and `go:embed`
+ships them in the binary. No CDN, no runtime fetch of anything foreign; the
+shell is served with a CSP of `default-src 'none'; script-src 'self';
+style-src 'self'` plus what the app needs from its own origin. Filtering,
+sorting and paging run server-side, so a 14,000-file Lidarr library costs one
+small JSON page per view.
+
+**One look for badges and dashboard.** The label styles live once in
+`web/src/shared/labels.css`: the dashboard bundles it, the injected script
+imports it as text into its shadow root. Colours follow the Servarr label
+palette, so a badge in Radarr and a row on the dashboard read the same.
+
+**Refusals the *Arr UI can show.** The 409 uses the Servarr error shape
+(`message`, `description`), which every generic error renderer in the *Arr
+frontends reads. Their delete handlers store a failed request and show
+nothing, so the injected script also recognises its own refusal (the
+`airrbag: true` marker) on `XMLHttpRequest` and `fetch` and opens the dialog,
+with the override.
+
 **Pure core.** `internal/verdict` takes plain values and returns a verdict
 with reasons. It has no I/O and carries most of the test cases.
 
@@ -92,5 +116,10 @@ with reasons. It has no I/O and carries most of the test cases.
 | `internal/trackers` | Private detection and seeding obligations |
 | `internal/verdict` | The decision |
 | `internal/engine` | Caches and orchestration per instance |
-| `internal/proxy` | Reverse proxy, injection, guard, API, lists page |
-| `web/src` | Browser script (TypeScript, bundled by esbuild) |
+| `internal/proxy` | Reverse proxy, injection, guard, API, dashboard endpoints |
+| `internal/hub` | What every instance of one process shares: instance list, guard log, redacted config |
+| `internal/webassets` | Embedded bundles (`make web`) and icons (`make icons`) |
+| `web/src` | Injected script (TypeScript, esbuild) |
+| `web/src/dashboard` | Dashboard (Preact + TypeScript, esbuild) |
+| `web/src/shared` | Labels, colours and formatting used by both |
+| `assets` | Logo sources; `scripts/icons.sh` renders the PNG set |

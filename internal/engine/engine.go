@@ -68,6 +68,10 @@ type FileVerdict struct {
 	SeedingTime  *int64           `json:"seedingTimeSeconds,omitempty"`
 	TorrentName  string           `json:"torrentName,omitempty"`
 	TorrentState string           `json:"torrentState,omitempty"`
+	// Seeding obligation of the torrent's tracker, when a rule is known.
+	RequiredSeedTime *int64   `json:"requiredSeedTimeSeconds,omitempty"`
+	RequiredRatio    *float64 `json:"requiredRatio,omitempty"`
+	ObligationMet    *bool    `json:"obligationMet,omitempty"`
 }
 
 type snapshot struct {
@@ -100,9 +104,11 @@ type Engine struct {
 	titles    map[int]string
 	slugsAt   time.Time
 
-	listsMu  sync.Mutex
-	lists    *Lists
-	listsErr error
+	listsMu      sync.Mutex
+	lists        *Lists
+	listsErr     error
+	listsRunning bool
+	lastLists    *Lists // last completed result, readable without waiting
 }
 
 // New creates an Engine.
@@ -385,7 +391,9 @@ func (e *Engine) attachTorrent(ctx context.Context, in *verdict.Input, fv *FileV
 	in.Torrent = vt
 	if e.o.Trackers != nil {
 		in.PrivateHost = e.o.Trackers.PrivateHost(host)
-		in.Obligation = e.o.Trackers.For(host)
+		ob := e.o.Trackers.For(host)
+		in.Obligation = ob
+		setObligation(fv, ob, t)
 	}
 	if len(files) <= maxStatFiles {
 		for _, tf := range files {
@@ -396,6 +404,22 @@ func (e *Engine) attachTorrent(ctx context.Context, in *verdict.Input, fv *FileV
 	ratio, secs := t.Ratio, int64(t.SeedingTime/time.Second)
 	fv.Ratio, fv.SeedingTime = &ratio, &secs
 	fv.Tracker, fv.TorrentName, fv.TorrentState = host, t.Name, t.State
+}
+
+// setObligation copies the tracker's seeding requirement onto the verdict,
+// for the dashboard's "seeded X of Y" column.
+func setObligation(fv *FileVerdict, ob trackers.Obligation, t clients.Torrent) {
+	if !ob.Known {
+		return
+	}
+	req, rr, met := int64(ob.MinSeedTime/time.Second), ob.MinRatio, ob.Met(t.SeedingTime, t.Ratio)
+	if req > 0 {
+		fv.RequiredSeedTime = &req
+	}
+	if rr > 0 {
+		fv.RequiredRatio = &rr
+	}
+	fv.ObligationMet = &met
 }
 
 // ParentFiles evaluates every file of one parent. Files missing from the
@@ -559,8 +583,49 @@ func (e *Engine) Lists(ctx context.Context) (*Lists, error) {
 	sort.Slice(res.Files, func(i, j int) bool { return res.Files[i].Size > res.Files[j].Size })
 	res.ComputedAt = e.o.Now()
 	e.lists, e.listsErr = res, nil
+	e.mu.Lock()
+	e.lastLists = res
+	e.mu.Unlock()
 	return res, nil
 }
+
+// CachedLists returns the last completed library evaluation without waiting,
+// and whether a fresh one is being computed. It never blocks on the *Arr.
+func (e *Engine) CachedLists() (l *Lists, computing bool) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	return e.lastLists, e.listsRunning
+}
+
+// RefreshListsAsync starts a library evaluation in the background unless one
+// is running or the cached result is younger than the TTL.
+func (e *Engine) RefreshListsAsync(ctx context.Context) {
+	e.mu.Lock()
+	fresh := e.lastLists != nil && e.o.Now().Sub(e.lastLists.ComputedAt) < e.o.TTL
+	if e.listsRunning || fresh {
+		e.mu.Unlock()
+		return
+	}
+	e.listsRunning = true
+	e.mu.Unlock()
+	go func() {
+		defer func() {
+			e.mu.Lock()
+			e.listsRunning = false
+			e.mu.Unlock()
+		}()
+		// Detached from the caller: a dashboard request that triggered the
+		// evaluation must not cancel it by finishing first.
+		lctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 15*time.Minute)
+		defer cancel()
+		if _, err := e.Lists(lctx); err != nil {
+			e.o.Log.Warn("library evaluation failed", "err", err)
+		}
+	}()
+}
+
+// Instance is the configured instance name.
+func (e *Engine) Instance() string { return e.o.Instance }
 
 // SubFiles evaluates the files of a child entity (album, book).
 func (e *Engine) SubFiles(ctx context.Context, param string, id int) ([]FileVerdict, error) {

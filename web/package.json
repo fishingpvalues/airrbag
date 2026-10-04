@@ -1,13 +1,18 @@
 {
   "name": "airrbag-web",
   "private": true,
-  "description": "Browser script Airrbag injects into the *Arr UI",
+  "description": "Browser code for Airrbag: the script injected into the *Arr UI and the dashboard",
   "scripts": {
-    "build": "esbuild src/main.ts --bundle --minify --format=iife --target=es2019 --legal-comments=none --outfile=../internal/webassets/dist/airrbag.js",
+    "build": "npm run build:inject && npm run build:dashboard",
+    "build:inject": "esbuild src/main.ts --bundle --minify --format=iife --target=es2019 --legal-comments=none --loader:.css=text --outfile=../internal/webassets/dist/airrbag.js",
+    "build:dashboard": "esbuild src/dashboard/main.tsx --bundle --minify --format=iife --target=es2020 --legal-comments=none --jsx=automatic --jsx-import-source=preact --outfile=../internal/webassets/dist/dashboard.js",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "esbuild": "0.28.2",
     "typescript": "7.0.2"
+  },
+  "dependencies": {
+    "preact": "11.0.0"
   }
 }

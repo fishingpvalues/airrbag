@@ -14,18 +14,25 @@
 import { confirmDelete } from "./guard";
 import { startBadges } from "./badges";
 import { cfg } from "./config";
+import { handleRefusal, parseRefusal } from "./refusal";
 
 function patchXHR(): void {
   const proto = XMLHttpRequest.prototype;
   const open = proto.open;
   const send = proto.send;
-  type Tagged = XMLHttpRequest & { __airrbag?: { method: string; url: string } };
+  const setHeader = proto.setRequestHeader;
+  type Tagged = XMLHttpRequest & { __airrbag?: { method: string; url: string; headers: Record<string, string> } };
 
   proto.open = function (this: Tagged, method: string, url: string | URL, ...rest: unknown[]) {
-    this.__airrbag = { method: String(method), url: String(url) };
+    this.__airrbag = { method: String(method), url: String(url), headers: {} };
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return (open as any).call(this, method, url, ...rest);
   } as typeof proto.open;
+
+  proto.setRequestHeader = function (this: Tagged, name: string, value: string) {
+    if (this.__airrbag) this.__airrbag.headers[name] = value;
+    return setHeader.call(this, name, value);
+  };
 
   proto.send = function (this: Tagged, body?: Document | XMLHttpRequestBodyInit | null) {
     const tag = this.__airrbag;
@@ -33,11 +40,25 @@ function patchXHR(): void {
       return send.call(this, body);
     }
     const bodyText = typeof body === "string" ? body : "";
+    // Safety net: a refusal from the server-side guard becomes the dialog.
+    this.addEventListener("load", () => {
+      const refusal = parseRefusal(this.status, typeof this.responseText === "string" ? this.responseText : "");
+      if (refusal) {
+        handleRefusal({ method: tag.method, url: tag.url, body: bodyText, headers: tag.headers }, refusal).catch(() => undefined);
+      }
+    });
     confirmDelete(tag.method, tag.url, bodyText).then(
       (ok) => (ok ? send.call(this, body) : this.abort()),
       () => send.call(this, body),
     );
   };
+}
+
+function headersOf(input: RequestInfo | URL, init?: RequestInit): Record<string, string> {
+  const out: Record<string, string> = {};
+  const h = new Headers((init && init.headers) || (input instanceof Request ? input.headers : undefined));
+  h.forEach((v, k) => (out[k] = v));
+  return out;
 }
 
 function patchFetch(): void {
@@ -49,9 +70,23 @@ function patchFetch(): void {
       return orig.call(this, input, init);
     }
     const body = init && typeof init.body === "string" ? init.body : "";
+    const watch = (p: Promise<Response>) =>
+      p.then((res) => {
+        if (res.status === 409 || res.status === 503) {
+          res
+            .clone()
+            .text()
+            .then((text) => {
+              const refusal = parseRefusal(res.status, text);
+              if (refusal) handleRefusal({ method, url, body, headers: headersOf(input, init) }, refusal).catch(() => undefined);
+            })
+            .catch(() => undefined);
+        }
+        return res;
+      });
     return confirmDelete(method, url, body).then(
-      (ok) => (ok ? orig.call(this, input, init) : Promise.reject(new DOMException("Cancelled by Airrbag", "AbortError"))),
-      () => orig.call(this, input, init),
+      (ok) => (ok ? watch(orig.call(this, input, init)) : Promise.reject(new DOMException("Cancelled by Airrbag", "AbortError"))),
+      () => watch(orig.call(this, input, init)),
     );
   };
 }

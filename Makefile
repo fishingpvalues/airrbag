@@ -1,4 +1,4 @@
-.PHONY: all web build test test-race lint fmt typecheck docker-build cover run clean tidy
+.PHONY: all web build test test-race lint fmt typecheck docker-build cover run clean tidy icons
 
 APP := airrbag
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
@@ -11,6 +11,10 @@ web/node_modules: web/package.json web/package-lock.json
 
 web: web/node_modules
 	cd web && npm run build
+
+# Regenerate the committed PNG icons from assets/logo.svg (needs rsvg-convert).
+icons:
+	scripts/icons.sh
 
 typecheck: web/node_modules
 	cd web && npm run typecheck
@@ -45,4 +49,4 @@ tidy:
 	go mod verify
 
 clean:
-	rm -f $(APP) coverage.out coverage.html internal/webassets/dist/airrbag.js
+	rm -f $(APP) coverage.out coverage.html internal/webassets/dist/airrbag.js internal/webassets/dist/dashboard.js internal/webassets/dist/dashboard.css

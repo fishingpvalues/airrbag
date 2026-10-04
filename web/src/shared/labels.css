@@ -1,0 +1,35 @@
+/* Labels, after Servarr's Label component: small, square-ish, filled with the
+   kind colour, a 1px border in the same colour. Shared by the injected badges
+   (inside a shadow root) and the dashboard. */
+.ab-label {
+  --c: #7a7a7a;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0 2px;
+  padding: 0 4px;
+  border: 1px solid var(--c);
+  border-radius: 2px;
+  background: var(--c);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+.ab-label svg { width: 10px; height: 10px; fill: currentColor; flex: none; }
+.ab-label.ab-outline { background: transparent; color: var(--c); }
+.ab-v-keep { --c: #f05050; }
+.ab-v-frees-nothing { --c: #a46bd6; }
+.ab-v-safe { --c: #27c24c; }
+.ab-v-unknown { --c: #7a7a7a; }
+.ab-s-usenet { --c: #5d9cec; }
+.ab-s-torrent { --c: #ff902b; }
+.ab-s-private { --c: #f05050; }
+.ab-s-unknown { --c: #7a7a7a; }
+.ab-k-success { --c: #27c24c; }
+.ab-k-warning { --c: #ffa500; }
+.ab-k-danger { --c: #f05050; }
+.ab-k-info { --c: #5d9cec; }
+.ab-k-default { --c: #6b6b6b; }

@@ -3,7 +3,7 @@
 
 import { APPS, api, cfg } from "./config";
 import type { FileVerdict } from "./types";
-import { BASE_CSS, COLORS, el, formatSize, sourceBadge, verdictBadge } from "./ui";
+import { BASE_CSS, COLORS, el, formatSize, logoIcon, sourceBadge, verdictBadge } from "./ui";
 
 const PANEL_CSS = `
 .p{margin:10px 0;background:rgba(32,32,32,.92);border:1px solid #3a3a3a;border-left:4px solid var(--c);border-radius:4px;color:#e1e2e3;font-size:13px}
@@ -56,6 +56,7 @@ function buildPanel(files: FileVerdict[], floating: boolean): HTMLElement {
   const p = el("div", "p" + (floating ? " float" : ""));
   p.style.setProperty("--c", summaryColor(files));
   const s = el("div", "s");
+  s.appendChild(logoIcon(16));
   s.appendChild(el("strong", undefined, "Airrbag"));
   const counts: Record<string, number> = {};
   files.forEach((f) => (counts[f.verdict] = (counts[f.verdict] || 0) + 1));

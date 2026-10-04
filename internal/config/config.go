@@ -61,9 +61,9 @@ type Client struct {
 // PathMapping is one prefix rewrite. Source is "arr", "client" or a client
 // name; empty means any source.
 type PathMapping struct {
-	From   string `yaml:"from"`
-	To     string `yaml:"to"`
-	Source string `yaml:"source"`
+	From   string `yaml:"from" json:"from"`
+	To     string `yaml:"to" json:"to"`
+	Source string `yaml:"source" json:"source"`
 }
 
 // Trackers configures private-tracker detection and seeding obligations.
