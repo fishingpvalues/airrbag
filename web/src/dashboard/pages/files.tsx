@@ -25,7 +25,7 @@ const columns: Column<FileRow>[] = [
   },
   { key: "instance", label: "Instance", sortable: true, render: (f) => f.instance },
   { key: "size", label: "Size", sortable: true, class: "num", render: (f) => formatSize(f.size) },
-  { key: "indexer", label: "Indexer", sortable: true, render: (f) => f.indexer || <span class="muted">-</span> },
+  { key: "indexer", label: "Indexer", sortable: true, class: "nowrap", render: (f) => f.indexer || <span class="muted">-</span> },
   { key: "tracker", label: "Tracker", sortable: true, render: (f) => f.tracker || <span class="muted">-</span> },
   {
     key: "ratio",
@@ -44,7 +44,11 @@ const columns: Column<FileRow>[] = [
     key: "why",
     label: "Why",
     class: "cell-why",
-    render: (f) => <span title={(f.reasons || []).join("\n")}>{(f.reasons || [])[(f.reasons || []).length - 1] || ""}</span>,
+    render: (f) => (
+      <span class="ellipsis" title={(f.reasons || []).join("\n")}>
+        {(f.reasons || [])[(f.reasons || []).length - 1] || ""}
+      </span>
+    ),
   },
 ];
 

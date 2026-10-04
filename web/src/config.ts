@@ -1,3 +1,5 @@
+import { arrApiKey } from "./shared/arrkey";
+
 // Configuration read from the injected <script> tag, plus the per-app UI
 // knowledge. Everything that depends on the *Arr's DOM lives in APPS.
 
@@ -40,9 +42,14 @@ export const APPS: Record<string, AppUI[]> = {
   }],
 };
 
-export function api(path: string, init?: RequestInit): Promise<Response> {
+export async function api(path: string, init?: RequestInit): Promise<Response> {
   // Use the original fetch even after patching, and always the same origin.
-  return nativeFetch(cfg.base + "/api" + path, Object.assign({ credentials: "same-origin" }, init || {}));
+  // The *Arr's own key (see shared/arrkey.ts) authenticates the call the way
+  // the *Arr UI authenticates its own.
+  const key = await arrApiKey(cfg.base.replace(/\/__airrbag$/, ""), nativeFetch);
+  const headers = new Headers((init && init.headers) || undefined);
+  if (key) headers.set("X-Api-Key", key);
+  return nativeFetch(cfg.base + "/api" + path, Object.assign({ credentials: "same-origin" }, init || {}, { headers }));
 }
 
 const nativeFetch: typeof fetch = window.fetch.bind(window);

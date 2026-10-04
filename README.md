@@ -30,8 +30,31 @@ compares inodes.
 
 ## Screenshots
 
-Screenshots of the badges, the delete dialog and the library lists page are
-added with the first tagged release.
+Source badges on a Radarr movie page, and the confirmation that opens before a
+delete would end a private seed:
+
+![Badges on a Radarr movie page](docs/screenshots/radarr-badges.png)
+
+![Delete confirmation for a private seed](docs/screenshots/radarr-delete-dialog.png)
+
+If a delete reaches the server-side guard anyway, its refusal opens the same
+dialog with the server's message:
+
+![Refusal from the server-side guard](docs/screenshots/radarr-blocked-refusal.png)
+
+The dashboard, one per process, reachable under every proxied *Arr:
+
+![Dashboard overview](docs/screenshots/dashboard-overview.png)
+
+![Dashboard overview, light theme](docs/screenshots/dashboard-overview-light.png)
+
+![Dashboard files](docs/screenshots/dashboard-files.png)
+
+![Dashboard guard log](docs/screenshots/dashboard-guard.png)
+
+The movie and its private torrent in the first three are a throwaway test
+fixture (a generated video registered as The General, 1926, seeded with a
+private flag from a test qBittorrent); the dashboard shows a real library.
 
 ## Install
 

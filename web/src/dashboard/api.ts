@@ -2,6 +2,7 @@
 // page (the Airrbag listener in front of one *Arr) and carries the browser's
 // *Arr session, which is how the API authenticates.
 
+import { arrApiKey } from "../shared/arrkey";
 import type { FileVerdict, Verdict } from "../types";
 import type { Source } from "../shared/tokens";
 
@@ -20,10 +21,10 @@ export const appName = (a: string): string => (a ? a.charAt(0).toUpperCase() + a
 export class AuthError extends Error {}
 
 export async function getJSON<T>(path: string): Promise<T> {
-  const r = await fetch(`${env.base}/api/dashboard/${path}`, {
-    credentials: "same-origin",
-    headers: { Accept: "application/json" },
-  });
+  const headers: Record<string, string> = { Accept: "application/json" };
+  const key = await arrApiKey(env.arrHome, fetch.bind(window));
+  if (key) headers["X-Api-Key"] = key;
+  const r = await fetch(`${env.base}/api/dashboard/${path}`, { credentials: "same-origin", headers });
   if (r.status === 401) throw new AuthError(`Sign in to ${appName(env.app)} in this browser, then reload.`);
   let body: unknown = null;
   try {

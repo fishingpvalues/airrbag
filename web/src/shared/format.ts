@@ -24,7 +24,8 @@ export function relativeTime(iso: string | undefined | null, now = Date.now()): 
   if (isNaN(t)) return "never";
   const s = Math.round((now - t) / 1000);
   if (s < 45) return "just now";
-  if (s < 3600) return `${Math.round(s / 60)} minutes ago`;
-  if (s < 86400) return `${Math.round(s / 3600)} hours ago`;
-  return `${Math.round(s / 86400)} days ago`;
+  const unit = (n: number, w: string) => `${n} ${w}${n === 1 ? "" : "s"} ago`;
+  if (s < 3600) return unit(Math.round(s / 60), "minute");
+  if (s < 86400) return unit(Math.round(s / 3600), "hour");
+  return unit(Math.round(s / 86400), "day");
 }

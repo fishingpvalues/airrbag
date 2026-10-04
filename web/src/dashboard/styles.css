@@ -8,6 +8,8 @@
 :root {
   --accent: #1db79e;
   --accent-text: #3fd1b8;
+  --nav-active-text: #3fd1b8;
+  --header-muted: rgba(255, 255, 255, 0.6);
   --page-bg: #202020;
   --header-bg: #2a2a2a;
   --header-fg: #e1e2e3;
@@ -38,6 +40,8 @@
 @media (prefers-color-scheme: light) {
   :root {
     --accent-text: #128c78;
+    --nav-active-text: #4fe0c6;
+    --header-muted: rgba(255, 255, 255, 0.7);
     --page-bg: #f5f7fa;
     --header-bg: #3a3f51;
     --header-fg: #ffffff;
@@ -71,7 +75,8 @@
 }
 
 html,
-body {
+body,
+#app {
   margin: 0;
   height: 100%;
 }
@@ -195,6 +200,7 @@ code {
 }
 .header-context .muted {
   margin-left: 4px;
+  color: var(--header-muted);
 }
 
 .header-action {
@@ -249,7 +255,7 @@ code {
 .nav-item.active {
   border-left-color: var(--accent);
   background: var(--sidebar-active-bg);
-  color: var(--accent-text);
+  color: var(--nav-active-text);
 }
 .nav-item .icon {
   flex: none;
@@ -259,7 +265,7 @@ code {
   margin-top: auto;
   padding: 14px 24px;
   font-size: 12px;
-  color: var(--muted);
+  color: var(--header-muted);
 }
 
 .sidebar-backdrop {
@@ -590,10 +596,19 @@ code {
   font-size: 12px;
   color: var(--muted);
 }
-.cell-why {
-  max-width: 360px;
+.table td.cell-why {
+  max-width: 320px;
   font-size: 12px;
   color: var(--muted);
+}
+.ellipsis {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.nowrap {
+  white-space: nowrap;
 }
 .request {
   white-space: nowrap;
