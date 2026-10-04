@@ -32,7 +32,7 @@ One listener per *Arr instance. The proxy:
 sequenceDiagram
   participant E as Engine
   participant A as *Arr
-  participant Q as qBittorrent
+  participant Q as Torrent client
   participant F as Filesystem
   E->>A: GET /history (paged, cached)
   Note over E: import event: fileId -> downloadId<br/>grab event: downloadId -> protocol, indexer, client, hash
@@ -62,6 +62,38 @@ filesystem says whether deleting it removes the torrent's data. A hardlink
 independent of how each app draws its delete dialogs. The *Arr UI's own request
 cannot carry an extra header, so a confirmed dialog registers a one-shot grant
 keyed by method, path, query and body hash; the guard consumes it.
+
+**Evidence chain when the history is silent.** Many libraries hold files the
+*Arr history never recorded: imported by hand, by another tool, or before the
+history kept them. Airrbag then gathers evidence in order of strength and
+stops at the first hit:
+
+1. Inode: the same bytes as a file of any torrent in any client (one walk of
+   every torrent's content, cached 15 minutes), or of a file in a
+   direct-download folder.
+2. Import folder: the import event's source path lies inside a torrent's
+   content or a Usenet client's finished folder.
+3. Release name, normalized (case, separators, media extension): a finished
+   SABnzbd job, an NZBHydra2 grab (NZB or torrent, with the indexer), a file
+   in a direct-download folder, a torrent's name.
+
+Names are weaker than inodes, so short or generic names (under 12
+characters, one word) never match.
+
+**Unknown is not safe, and torrent evidence is never unknown.** "We don't
+know where it came from" used to mean "allow". For a torrent download whose
+seed cannot be seen (client down, files unreadable) that is exactly the
+hit-and-run airrbag exists to prevent, so any torrent evidence turns an
+unknown verdict into `keep`. What remains unknown has no evidence at all, and
+`guard.unknown` decides:
+
+- `confirm` (default) asks once in the UI with a warning and lets an API
+  caller without a grant through, logged at WARN and counted in
+  `airrbag_unknown_deletes_total`. Blocking these by default would interrupt
+  every cleanup of an old library while protecting nothing the evidence chain
+  could identify. A visible warning plus an audit trail is the balance.
+- `block` refuses them everywhere without a grant, for maximum safety.
+- `allow` keeps only the badge.
 
 **Fail closed for private trackers.** If the torrent client cannot be asked and
 the indexer is private, the verdict is `keep`. If several clients exist and one

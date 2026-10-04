@@ -238,20 +238,7 @@ func (s *Server) guard(w http.ResponseWriter, r *http.Request) bool {
 	if !ok {
 		return false
 	}
-	q := r.URL.Query()
-	override := r.Header.Get("X-Airrbag-Override")
-	if override == "" {
-		override = q.Get("airrbagOverride")
-	}
-	if q.Has("airrbagOverride") {
-		q.Del("airrbagOverride")
-		r.URL.RawQuery = q.Encode()
-	}
-	key := grantKey(r.Method, r.URL, body)
-	if override == "" && s.grants.take(key) {
-		override = "confirmed in the Airrbag dialog"
-	}
-	if override != "" {
+	if override := s.override(r, body); override != "" {
 		s.o.Log.Info("guard override", "instance", s.o.Name, "path", r.URL.Path, "reason", override)
 		s.o.Metrics.Add("airrbag_guard_overridden_total", 1, "instance", s.o.Name)
 		s.record(r, hub.Overridden, "delete confirmed despite the guard", nil, override)
@@ -284,33 +271,58 @@ func (s *Server) guard(w http.ResponseWriter, r *http.Request) bool {
 		s.record(r, hub.ErrorOpen, "could not verify: "+err.Error(), nil, "")
 		return false
 	}
-	var keep []engine.FileVerdict
+	var keep, unknown []engine.FileVerdict
 	for _, fv := range fvs {
-		if fv.Verdict == verdict.Keep {
+		switch fv.Verdict {
+		case verdict.Keep:
 			keep = append(keep, fv)
+		case verdict.Unknown:
+			unknown = append(unknown, fv)
 		}
 	}
-	if len(keep) == 0 {
+	blockUnknown := s.unknownBlocks(r, keep, unknown)
+	if len(keep) == 0 && !blockUnknown {
 		return false
+	}
+	reason, msg := "keep", "airrbag: this delete would break a private-tracker seed that is still owed"
+	if len(keep) == 0 {
+		reason, msg = "unknown", "airrbag: provenance unknown: airrbag could not prove this file is safe to delete"
 	}
 	if s.o.Guard.DryRun {
-		s.o.Log.Warn("guard dry-run: would block delete", "instance", s.o.Name, "path", r.URL.Path, "keep", len(keep))
+		s.o.Log.Warn("guard dry-run: would block delete", "instance", s.o.Name, "path", r.URL.Path,
+			"keep", len(keep), "unknown", len(unknown), "reason", reason)
 		s.o.Metrics.Add("airrbag_guard_dryrun_total", 1, "instance", s.o.Name)
-		s.record(r, hub.WouldBlock, "a private seed is still owed (dry run: passed)", keep, "")
+		if reason == "keep" {
+			s.record(r, hub.WouldBlock, "a private seed is still owed (dry run: passed)", keep, "")
+		} else {
+			s.record(r, hub.WouldBlock, "provenance unknown (dry run: passed)", unknown, "")
+		}
 		return false
 	}
-	s.o.Log.Warn("guard blocked delete", "instance", s.o.Name, "path", r.URL.Path, "keep", len(keep))
-	s.o.Metrics.Add("airrbag_guard_blocked_total", 1, "instance", s.o.Name, "reason", "keep")
-	s.record(r, hub.Blocked, "a private seed is still owed", keep, "")
-	msg := KeepMessage(keep)
+	s.o.Log.Warn("guard blocked delete", "instance", s.o.Name, "path", r.URL.Path,
+		"keep", len(keep), "unknown", len(unknown), "reason", reason)
+	s.o.Metrics.Add("airrbag_guard_blocked_total", 1, "instance", s.o.Name, "reason", reason)
+	description := "Deleting now ends a private-tracker seed whose obligation is not met: a hit-and-run."
+	if len(keep) > 0 {
+		msg = KeepMessage(keep)
+		s.record(r, hub.Blocked, "a private seed is still owed", keep, "")
+	} else {
+		description = "airrbag found no evidence of where these files came from (guard.unknown: block)."
+		s.record(r, hub.Blocked, "provenance unknown", unknown, "")
+	}
+	if !blockUnknown {
+		unknown = nil
+	}
 	writeJSON(w, http.StatusConflict, map[string]any{
 		// message/description: the Servarr error shape the *Arr UIs render;
 		// airrbag:true lets the injected script recognize its own refusal.
 		"message":     msg,
-		"description": "Deleting now ends a private-tracker seed whose obligation is not met: a hit-and-run.",
+		"description": description,
 		"airrbag":     true,
 		"error":       msg,
+		"reason":      reason,
 		"keep":        keep,
+		"unknown":     unknown,
 		"override":    "confirm in the Airrbag dialog, or repeat with header X-Airrbag-Override: <reason>",
 	})
 	return true
@@ -523,4 +535,44 @@ func (s *Server) apiLists(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, l)
+}
+
+// unknownBlocks applies guard.unknown to the files whose origin could not be
+// proven. "block" refuses them; "confirm" lets an ungranted caller through
+// with a WARN and a metric (the UI asked before it sent); "allow" says nothing.
+func (s *Server) unknownBlocks(r *http.Request, keep, unknown []engine.FileVerdict) bool {
+	if len(unknown) == 0 {
+		return false
+	}
+	switch s.o.Guard.UnknownMode() {
+	case config.UnknownBlock:
+		return true
+	case config.UnknownConfirm:
+		if len(keep) == 0 {
+			s.o.Log.Warn("guard: delete of files with unproven origin let through without confirmation",
+				"instance", s.o.Name, "path", r.URL.Path, "unknown", len(unknown))
+			s.o.Metrics.Add("airrbag_unknown_deletes_total", 1, "instance", s.o.Name)
+			s.record(r, hub.UnknownPassed, "provenance unknown, no confirmation (guard.unknown: confirm)", unknown, "")
+		}
+	}
+	return false
+}
+
+// override returns why a guarded delete may pass without a check: the
+// X-Airrbag-Override header, the airrbagOverride query parameter (removed
+// before the request goes upstream) or a single-use grant from the dialog.
+func (s *Server) override(r *http.Request, body []byte) string {
+	q := r.URL.Query()
+	override := r.Header.Get("X-Airrbag-Override")
+	if override == "" {
+		override = q.Get("airrbagOverride")
+	}
+	if q.Has("airrbagOverride") {
+		q.Del("airrbagOverride")
+		r.URL.RawQuery = q.Encode()
+	}
+	if override == "" && s.grants.take(grantKey(r.Method, r.URL, body)) {
+		override = "confirmed in the Airrbag dialog"
+	}
+	return override
 }

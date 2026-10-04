@@ -64,7 +64,10 @@ func TestValidate(t *testing.T) {
 		"instances:\n  - {name: a, listen: ':1', upstream: 'http://x', api_key: ''}",
 		"instances:\n  - {name: a, listen: ':1', upstream: 'http://x', api_key: k, app: plex}",
 		"instances:\n  - {name: a, listen: ':1', upstream: 'http://x', api_key: k}\n  - {name: a, listen: ':1', upstream: 'http://x', api_key: k}",
-		"instances:\n  - {name: a, listen: ':1', upstream: 'http://x', api_key: k}\nclients:\n  - {name: x, type: transmission}",
+		"instances:\n  - {name: a, listen: ':1', upstream: 'http://x', api_key: k}\nclients:\n  - {name: x, type: utorrent}",
+		"instances:\n  - {name: a, listen: ':1', upstream: 'http://x', api_key: k}\nclients:\n  - {name: x, type: xunlei}",
+		"instances:\n  - {name: a, listen: ':1', upstream: 'http://x', api_key: k}\nclients:\n  - {name: h, type: nzbhydra2}",
+		"instances:\n  - {name: a, listen: ':1', upstream: 'http://x', api_key: k}\nguard: {unknown: maybe}",
 		"instances:\n  - {name: a, listen: ':1', upstream: 'http://x', api_key: k}\nunknown_field: 1",
 	}
 	for _, b := range bad {
@@ -74,6 +77,14 @@ func TestValidate(t *testing.T) {
 	}
 	if _, err := Parse([]byte("instances:\n  - {name: a, listen: ':1', upstream: 'http://x', api_key: k}")); err != nil {
 		t.Errorf("minimal config: %v", err)
+	}
+	for _, typ := range []string{"qbittorrent", "transmission", "deluge", "rtorrent", "sabnzbd"} {
+		if _, err := Parse([]byte("instances:\n  - {name: a, listen: ':1', upstream: 'http://x', api_key: k}\nclients:\n  - {name: x, type: " + typ + "}")); err != nil {
+			t.Errorf("client type %s: %v", typ, err)
+		}
+	}
+	if _, err := Parse([]byte("instances:\n  - {name: a, listen: ':1', upstream: 'http://x', api_key: k}\nclients:\n  - {name: xl, type: xunlei, path: /downloads/xunlei}\n  - {name: hydra, type: nzbhydra2, url: 'http://hydra:5076'}")); err != nil {
+		t.Errorf("xunlei/nzbhydra2: %v", err)
 	}
 	if !strings.Contains(Expand("a ${AIRRBAG_UNSET_X}b"), "a b") {
 		t.Error("unset variable must expand to empty")
@@ -88,5 +99,13 @@ func TestParseDuration(t *testing.T) {
 	}
 	if _, err := ParseDuration("xd"); err == nil {
 		t.Error("bad day count must error")
+	}
+}
+
+func TestUnknownMode(t *testing.T) {
+	for in, want := range map[string]string{"": "confirm", "confirm": "confirm", "BLOCK": "block", "allow": "allow"} {
+		if got := (Guard{Unknown: in}).UnknownMode(); got != want {
+			t.Errorf("UnknownMode(%q) = %q, want %q", in, got, want)
+		}
 	}
 }

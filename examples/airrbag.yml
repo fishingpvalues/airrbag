@@ -26,6 +26,13 @@ clients:
   - name: SABnzbd
     type: sabnzbd
     api_key: ${SABNZBD_API_KEY}
+  # Other torrent clients the *Arr knows are discovered the same way:
+  # - { name: Transmission, type: transmission, username: u, password: ${TRANSMISSION_PASSWORD} }
+  # - { name: Deluge, type: deluge, password: ${DELUGE_PASSWORD} }       # Web UI password
+  # - { name: rTorrent, type: rtorrent, username: u, password: ${RTORRENT_PASSWORD} }
+  # Provenance sources the *Arr does not list:
+  # - { name: NZBHydra2, type: nzbhydra2, url: http://nzbhydra2:5076 }  # api_key optional
+  # - { name: Xunlei, type: xunlei, path: /media/downloads/xunlei }       # its download folder
 
 # Airrbag compares inodes, so it must see the same files the *Arr and the
 # torrent client see. Mount the media read-only into the Airrbag container
@@ -54,7 +61,9 @@ trackers:
 guard:
   # enabled: true      # refuse deletes of "keep" files with 409 (default on)
   # dry_run: false     # log what would be blocked instead of blocking
-  # fail_closed: true  # an unreachable torrent client + private indexer = keep
+  # fail_closed: true  # a check that cannot run answers 503 instead of passing
+  # unknown: confirm   # no provenance evidence: confirm (ask once) | block | allow
+  #                    # torrent evidence without a visible seed is always kept
   # grant_ttl: 2m      # how long a confirmation in the browser dialog lasts
 
 # cache_ttl: 5m

@@ -47,8 +47,9 @@ type Instance struct {
 	App string `yaml:"app"`
 }
 
-// Client is a download client. Name matches the *Arr's download client name
-// (for example "qBittorrent (Seed)"); Type is qbittorrent or sabnzbd.
+// Client is a download client or provenance source. Name matches the *Arr's
+// download client name (for example "qBittorrent (Seed)"). Type is one of
+// ClientTypes.
 type Client struct {
 	Name     string `yaml:"name"`
 	Type     string `yaml:"type"`
@@ -56,6 +57,20 @@ type Client struct {
 	Username string `yaml:"username"`
 	Password string `yaml:"password"`
 	APIKey   string `yaml:"api_key"`
+	// Path is the download folder of a client without a usable API
+	// (xunlei), in Airrbag's filesystem view.
+	Path string `yaml:"path"`
+}
+
+// ClientTypes are the supported values of Client.Type.
+var ClientTypes = map[string]string{
+	"qbittorrent":  "torrent",
+	"transmission": "torrent",
+	"deluge":       "torrent",
+	"rtorrent":     "torrent",
+	"sabnzbd":      "usenet",
+	"nzbhydra2":    "indexer",
+	"xunlei":       "direct",
 }
 
 // PathMapping is one prefix rewrite. Source is "arr", "client" or a client
@@ -101,6 +116,30 @@ type Guard struct {
 	FailClosed *bool `yaml:"fail_closed"`
 	// GrantTTL is how long an override confirmed in the UI stays valid.
 	GrantTTL Duration `yaml:"grant_ttl"`
+	// Unknown decides what happens to a delete of a file whose origin
+	// Airrbag could not prove: "confirm" (default), "block" or "allow".
+	// A file with any torrent evidence is never "unknown" for the guard: it
+	// is kept, whatever this says.
+	Unknown string `yaml:"unknown"`
+}
+
+// Unknown-file modes for Guard.Unknown.
+const (
+	UnknownConfirm = "confirm"
+	UnknownBlock   = "block"
+	UnknownAllow   = "allow"
+)
+
+// UnknownMode returns the effective unknown-file mode (default confirm).
+func (g Guard) UnknownMode() string {
+	switch strings.ToLower(strings.TrimSpace(g.Unknown)) {
+	case UnknownBlock:
+		return UnknownBlock
+	case UnknownAllow:
+		return UnknownAllow
+	default:
+		return UnknownConfirm
+	}
 }
 
 // GuardEnabled reports whether the guard is on (default true).
@@ -210,6 +249,11 @@ func (c *Config) Validate() error {
 	}
 	errs = append(errs, c.validateInstances()...)
 	errs = append(errs, c.validateClients()...)
+	switch strings.ToLower(strings.TrimSpace(c.Guard.Unknown)) {
+	case "", UnknownConfirm, UnknownBlock, UnknownAllow:
+	default:
+		errs = append(errs, fmt.Errorf("guard.unknown must be confirm, block or allow, not %q", c.Guard.Unknown))
+	}
 	for i, m := range c.PathMappings {
 		if m.From == "" || m.To == "" {
 			errs = append(errs, fmt.Errorf("path_mappings[%d]: from and to are required", i))
@@ -255,11 +299,22 @@ func (c *Config) validateClients() []error {
 	var errs []error
 	for i, cl := range c.Clients {
 		p := fmt.Sprintf("clients[%d]", i)
-		if cl.Type != "qbittorrent" && cl.Type != "sabnzbd" {
-			errs = append(errs, fmt.Errorf("%s: type must be qbittorrent or sabnzbd", p))
+		if _, ok := ClientTypes[cl.Type]; !ok {
+			errs = append(errs, fmt.Errorf("%s: type must be one of qbittorrent, transmission, deluge, rtorrent, sabnzbd, nzbhydra2, xunlei", p))
 		}
-		if cl.Name == "" && cl.URL == "" {
-			errs = append(errs, fmt.Errorf("%s: name (to match the *Arr client) or url is required", p))
+		switch cl.Type {
+		case "xunlei":
+			if cl.Path == "" {
+				errs = append(errs, fmt.Errorf("%s: xunlei needs path (its download folder)", p))
+			}
+		case "nzbhydra2":
+			if cl.URL == "" {
+				errs = append(errs, fmt.Errorf("%s: nzbhydra2 needs url", p))
+			}
+		default:
+			if cl.Name == "" && cl.URL == "" {
+				errs = append(errs, fmt.Errorf("%s: name (to match the *Arr client) or url is required", p))
+			}
 		}
 		if cl.URL != "" && !httpURL(cl.URL) {
 			errs = append(errs, fmt.Errorf("%s: invalid url", p))

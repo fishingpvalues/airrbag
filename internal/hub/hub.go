@@ -33,6 +33,9 @@ const (
 	Overridden  Decision = "overridden"   // a keep file, let through by an override
 	ErrorClosed Decision = "error-closed" // could not verify, failed closed (503)
 	ErrorOpen   Decision = "error-open"   // could not verify, passed
+	// UnknownPassed: a file with unproven origin, deleted without a
+	// confirmation under guard.unknown "confirm" (an API caller).
+	UnknownPassed Decision = "unknown-passed"
 )
 
 // GuardEvent is one recorded guard decision.

@@ -319,3 +319,111 @@ func TestOwnEndpoints(t *testing.T) {
 	}
 	_, _ = io.Copy(io.Discard, rec.Body)
 }
+
+type downQB struct{}
+
+func (downQB) Snapshot(context.Context) (map[string]clients.Torrent, error) {
+	return nil, errors.New("connection refused")
+}
+func (downQB) Files(context.Context, string) ([]string, error)    { return nil, errors.New("down") }
+func (downQB) Private(context.Context, string) (bool, error)      { return false, errors.New("down") }
+func (downQB) Trackers(context.Context, string) ([]string, error) { return nil, errors.New("down") }
+
+// newUnknownServer fronts a library with two files: 20 has no history and no
+// torrent anywhere (unknown); 21 was a torrent grab per history, but the only
+// torrent client is down, so its seed status cannot be seen.
+func newUnknownServer(t *testing.T, up *upstream, guard config.Guard, clientDown bool) *Server {
+	t.Helper()
+	dir := t.TempDir()
+	mk := func(name string) string {
+		p := filepath.Join(dir, "lib", name)
+		_ = os.MkdirAll(filepath.Dir(p), 0o755)
+		if err := os.WriteFile(p, []byte("x"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		return p
+	}
+	const h = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+	now := time.Now()
+	fa := &fakeArr{
+		files: map[int][]arr.File{1: {{ID: 20, ParentID: 1, Path: mk("Unknown.mkv")}, {ID: 21, ParentID: 1, Path: mk("Torrent.mkv")}}},
+		hist: []arr.HistoryRecord{
+			{EventType: "grabbed", DownloadID: h, Date: now, Data: map[string]any{"protocol": "2", "indexer": "Public", "torrentInfoHash": h}},
+			{EventType: "downloadFolderImported", DownloadID: h, Date: now, Data: map[string]any{"fileId": "21"}},
+		},
+	}
+	var qb clients.TorrentClient = fakeQB{t: map[string]clients.Torrent{}}
+	if clientDown {
+		qb = downQB{}
+	}
+	reg, _ := trackers.New(config.Trackers{})
+	eng := engine.New(engine.Options{Instance: "radarr", Arr: fa, Torrent: map[string]clients.TorrentClient{"qB": qb},
+		Trackers: reg, FailClosed: true, UnknownMode: guard.UnknownMode()})
+	u, _ := url.Parse(up.srv.URL)
+	shape, _ := arr.ShapeFor("radarr", 6)
+	return New(Options{Name: "radarr", Upstream: u, Shape: shape, Status: arr.Status{Version: "6.0.0"},
+		Engine: eng, Guard: guard, Version: "test", Script: []byte("/*js*/")})
+}
+
+func TestGuardUnknownModes(t *testing.T) {
+	cases := []struct {
+		mode     string
+		wantCode int
+		confirm  bool
+	}{
+		{"", http.StatusOK, true}, // default: confirm
+		{config.UnknownConfirm, http.StatusOK, true},
+		{config.UnknownBlock, http.StatusConflict, true},
+		{config.UnknownAllow, http.StatusOK, false},
+	}
+	for _, c := range cases {
+		up := newUpstream(t)
+		s := newUnknownServer(t, up, config.Guard{Unknown: c.mode}, false)
+		rec := do(t, s, http.MethodDelete, "/api/v3/moviefile/20", "", nil)
+		if rec.Code != c.wantCode {
+			t.Errorf("mode %q: code %d, want %d (%s)", c.mode, rec.Code, c.wantCode, rec.Body)
+		}
+		if c.wantCode == http.StatusConflict {
+			if !strings.Contains(rec.Body.String(), `"reason":"unknown"`) || !strings.Contains(rec.Body.String(), "provenance unknown") {
+				t.Errorf("mode %q: 409 body must explain unknown provenance: %s", c.mode, rec.Body)
+			}
+			// The dialog's grant still lets it through.
+			do(t, s, http.MethodPost, "/__airrbag/api/grant", `{"method":"DELETE","url":"/api/v3/moviefile/20","reason":"checked"}`, nil)
+			if r := do(t, s, http.MethodDelete, "/api/v3/moviefile/20", "", nil); r.Code != http.StatusOK {
+				t.Errorf("mode %q: granted delete: %d", c.mode, r.Code)
+			}
+		}
+		files := do(t, s, http.MethodGet, "/__airrbag/api/files?parentId=1", "", nil).Body.String()
+		var got struct {
+			Files []engine.FileVerdict `json:"files"`
+		}
+		_ = json.Unmarshal([]byte(files), &got)
+		found := false
+		for _, fv := range got.Files {
+			if fv.FileID != 20 {
+				continue
+			}
+			found = true
+			if fv.Verdict != "unknown" || fv.Severity != "warning" || fv.NeedsConfirm != c.confirm || fv.Reason == "" || len(fv.Evidence) == 0 {
+				t.Errorf("mode %q: unknown file presentation %+v", c.mode, fv)
+			}
+		}
+		if !found {
+			t.Errorf("mode %q: file 20 missing from /api/files: %s", c.mode, files)
+		}
+	}
+}
+
+func TestGuardTorrentEvidenceOverridesUnknownMode(t *testing.T) {
+	for _, mode := range []string{config.UnknownAllow, config.UnknownConfirm, config.UnknownBlock} {
+		up := newUpstream(t)
+		s := newUnknownServer(t, up, config.Guard{Unknown: mode}, true)
+		rec := do(t, s, http.MethodDelete, "/api/v3/moviefile/21", "", nil)
+		if rec.Code != http.StatusConflict || !strings.Contains(rec.Body.String(), `"reason":"keep"`) {
+			t.Errorf("mode %q: a torrent grab with an unreachable client must be kept, got %d %s", mode, rec.Code, rec.Body)
+		}
+		if up.deletes.Load() != 0 {
+			t.Errorf("mode %q: blocked delete reached the *Arr", mode)
+		}
+	}
+}

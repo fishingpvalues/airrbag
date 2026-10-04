@@ -34,10 +34,15 @@ type Arr interface {
 
 // Options configure an Engine.
 type Options struct {
-	Instance     string
-	Arr          Arr
-	Torrent      map[string]clients.TorrentClient // keyed by *Arr download-client name
-	Usenet       map[string]clients.UsenetClient
+	Instance string
+	Arr      Arr
+	Torrent  map[string]clients.TorrentClient // keyed by *Arr download-client name
+	Usenet   map[string]clients.UsenetClient
+	Indexers []NamedIndexer // indexer proxies with a download history (NZBHydra2)
+	Direct   []DirectSource // folders filled by non-seeding downloaders (Xunlei)
+	// UnknownMode is the guard's unknown-file mode (confirm, block, allow);
+	// it only shapes the severity/needsConfirm hints for the UI.
+	UnknownMode  string
 	Mapper       *paths.Mapper
 	Trackers     *trackers.Registry
 	Stat         fsx.Statter
@@ -72,6 +77,19 @@ type FileVerdict struct {
 	RequiredSeedTime *int64   `json:"requiredSeedTimeSeconds,omitempty"`
 	RequiredRatio    *float64 `json:"requiredRatio,omitempty"`
 	ObligationMet    *bool    `json:"obligationMet,omitempty"`
+	// Reason is the one-line summary of the verdict for a tooltip or dialog.
+	Reason string `json:"reason"`
+	// Evidence is the chain of facts behind the protocol: which source proved
+	// what (history, inode match, client history, indexer proxy, name match).
+	Evidence []string `json:"evidence"`
+	// Severity is "danger" (keep), "warning" (unknown), "info" (frees-nothing)
+	// or "ok" (safe), for badge and dialog styling.
+	Severity string `json:"severity"`
+	// NeedsConfirm is true when deleting this file should ask first: always
+	// for keep, for unknown unless guard.unknown is "allow".
+	NeedsConfirm bool `json:"needsConfirm"`
+	// Source names the client or source the evidence came from, when known.
+	Source string `json:"source,omitempty"`
 }
 
 type snapshot struct {
@@ -109,6 +127,9 @@ type Engine struct {
 	listsErr     error
 	listsRunning bool
 	lastLists    *Lists // last completed result, readable without waiting
+
+	evMu sync.Mutex
+	ev   *evidence
 }
 
 // New creates an Engine.
@@ -297,6 +318,13 @@ func (e *Engine) trackerHost(ctx context.Context, c clients.TorrentClient, t cli
 const maxStatFiles = 5000
 
 // Evaluate computes the verdict for one library file.
+//
+// Provenance is proven in this order, stopping at the first source that
+// settles it: the *Arr history (download id -> client), the torrent clients
+// (info hash, then content path), then - only when history has nothing - the
+// file's bytes (inode match against every torrent and every direct-download
+// folder), the folder it was imported from, the Usenet client's history, the
+// indexer proxy's history and finally the torrent names, all by release name.
 func (e *Engine) Evaluate(ctx context.Context, f arr.File, idx *arr.Index) FileVerdict {
 	local := e.o.Mapper.Local(f.Path, paths.Source{Kind: "arr", Name: e.o.Instance})
 	info, statErr := e.o.Stat.Stat(local)
@@ -314,21 +342,188 @@ func (e *Engine) Evaluate(ctx context.Context, f arr.File, idx *arr.Index) FileV
 		FailClosed:     e.o.FailClosed,
 	}
 	fv := FileVerdict{FileID: f.ID, ParentID: f.ParentID, Path: f.Path, RelativePath: f.RelativePath,
-		Size: f.Size, Indexer: prov.Indexer, Client: prov.Client}
+		Size: f.Size, Indexer: prov.Indexer, Client: prov.Client, Source: prov.Client}
+
+	switch {
+	case proto != verdict.ProtoUnknown:
+		fv.Evidence = append(fv.Evidence, describeHistory(prov))
+	case prov.Recorded:
+		fv.Evidence = append(fv.Evidence, "history: imported without a download record (manual or disk import)")
+	default:
+		fv.Evidence = append(fv.Evidence, "history: no import event for this file")
+	}
+	if in.PrivateIndexer {
+		fv.Evidence = append(fv.Evidence, "indexer "+prov.Indexer+" is a private tracker")
+	}
 
 	if proto != verdict.ProtoUsenet {
-		e.attachTorrent(ctx, &in, &fv, prov)
+		e.attachTorrent(ctx, &in, &fv, prov, "")
 	}
+	if in.Protocol == verdict.ProtoUnknown && in.Torrent == nil {
+		e.gatherEvidence(ctx, &in, &fv, f, prov)
+	}
+
 	res := verdict.Decide(in)
 	fv.Verdict, fv.Protocol, fv.Private, fv.Relation, fv.Reasons = res.Verdict, res.Protocol, res.Private, res.Relation, res.Reasons
 	if statErr != nil && errors.Is(statErr, fsx.ErrUnsupported) {
 		fv.Reasons = append(fv.Reasons, "inode identity unavailable on this platform")
 	}
+	e.finish(&fv)
 	return fv
 }
 
-func (e *Engine) attachTorrent(ctx context.Context, in *verdict.Input, fv *FileVerdict, prov arr.Provenance) {
+func describeHistory(p arr.Provenance) string {
+	parts := []string{"history: " + p.Protocol}
+	if p.Indexer != "" {
+		parts = append(parts, "via "+p.Indexer)
+	}
+	if p.Client != "" {
+		parts = append(parts, "into "+p.Client)
+	}
+	return strings.Join(parts, " ")
+}
+
+// finish fills the presentation fields every verdict carries.
+func (e *Engine) finish(fv *FileVerdict) {
+	if len(fv.Reasons) > 0 {
+		fv.Reason = fv.Reasons[len(fv.Reasons)-1]
+	}
+	switch fv.Verdict {
+	case verdict.Keep:
+		fv.Severity, fv.NeedsConfirm = "danger", true
+	case verdict.Unknown:
+		fv.Severity = "warning"
+		fv.NeedsConfirm = !strings.EqualFold(e.o.UnknownMode, "allow")
+		if fv.Reason == "" || fv.Reason == "no download history for this file" {
+			fv.Reason = "airrbag can't prove where this file came from"
+		}
+	case verdict.FreesNothing:
+		fv.Severity = "info"
+	default:
+		fv.Severity = "ok"
+	}
+	if fv.Evidence == nil {
+		fv.Evidence = []string{}
+	}
+}
+
+// gatherEvidence runs the history-free provenance sources for a file the
+// *Arr history could not place, in order of how conclusive they are: the
+// file's bytes, the folder it was imported from, then its release name.
+func (e *Engine) gatherEvidence(ctx context.Context, in *verdict.Input, fv *FileVerdict, f arr.File, prov arr.Provenance) {
+	ev := e.currentEvidence(ctx)
+	if e.byInode(ctx, ev, in, fv) || e.byImportFolder(ctx, ev, in, fv, prov) {
+		return
+	}
+	names := nameCandidates(in.Path, fileNames{sceneName: f.SceneName, sourceTitle: prov.SourceTitle,
+		originalFilePath: f.OriginalFilePath, droppedPath: prov.DroppedPath})
+	if e.byName(ctx, ev, in, fv, names) {
+		return
+	}
+	switch {
+	case len(ev.torrentsErr) > 0:
+		fv.Evidence = append(fv.Evidence, "torrent client(s) unreachable: "+strings.Join(ev.torrentsErr, ", "))
+	case len(e.o.Torrent) == 0 && len(e.o.Usenet) == 0:
+		fv.Evidence = append(fv.Evidence, "no download clients configured to compare with")
+	default:
+		fv.Evidence = append(fv.Evidence, "no torrent, Usenet job, indexer grab or download folder matches this file")
+	}
+}
+
+// byInode: the same bytes as a torrent's file, or as a file in a
+// direct-download folder. The strongest evidence there is.
+func (e *Engine) byInode(ctx context.Context, ev *evidence, in *verdict.Input, fv *FileVerdict) bool {
+	k, ok := key(in.File)
+	if !ok {
+		return false
+	}
+	if ref, ok := ev.torrentInodes[k]; ok {
+		fv.Evidence = append(fv.Evidence, "inode: same bytes as a file of torrent "+ref.hash+" in "+ref.client)
+		in.TorrentEvidence = true
+		e.attachTorrent(ctx, in, fv, arr.Provenance{InfoHash: ref.hash, Client: ref.client}, ref.client)
+		return true
+	}
+	if src, ok := ev.directInodes[k]; ok {
+		fv.Evidence = append(fv.Evidence, "inode: same bytes as a file in the "+src+" download folder")
+		in.Protocol, in.DirectSource, fv.Source = verdict.ProtoDirect, src, src
+		return true
+	}
+	return false
+}
+
+// byImportFolder: the *Arr imported the file from inside a torrent's content
+// folder or a Usenet client's finished-download folder.
+func (e *Engine) byImportFolder(ctx context.Context, ev *evidence, in *verdict.Input, fv *FileVerdict, prov arr.Provenance) bool {
+	if prov.DroppedPath == "" {
+		return false
+	}
+	dropped := e.o.Mapper.Local(prov.DroppedPath, paths.Source{Kind: "arr", Name: e.o.Instance})
+	for _, n := range e.candidates("") {
+		s := e.snapshot(ctx, n, e.o.Torrent[n])
+		if h, ok := s.findByContent(dropped); ok {
+			fv.Evidence = append(fv.Evidence, "imported from the content folder of torrent "+h+" in "+n)
+			in.TorrentEvidence = true
+			e.attachTorrent(ctx, in, fv, arr.Provenance{InfoHash: h, Client: n}, n)
+			return true
+		}
+	}
+	if c, ok := ev.usenetDirFor(dropped); ok {
+		fv.Evidence = append(fv.Evidence, "imported from the finished-download folder of "+c)
+		in.Protocol, fv.Source = verdict.ProtoUsenet, c
+		return true
+	}
+	return false
+}
+
+// byName matches the release name against, in order: finished Usenet jobs,
+// the indexer proxy's grabs, direct-download folders, torrent names.
+func (e *Engine) byName(ctx context.Context, ev *evidence, in *verdict.Input, fv *FileVerdict, names []string) bool {
+	for _, n := range names {
+		if c, ok := ev.usenetNames[n]; ok {
+			fv.Evidence = append(fv.Evidence, "release name matches a finished job in "+c+"'s history")
+			in.Protocol, fv.Source = verdict.ProtoUsenet, c
+			return true
+		}
+	}
+	for _, n := range names {
+		if d, ok := ev.indexerNames[n]; ok {
+			fv.Evidence = append(fv.Evidence, "release name matches a "+d.Kind+" grab from "+d.Indexer+" in the indexer proxy's history")
+			fv.Indexer = d.Indexer
+			if d.Kind != "torrent" {
+				in.Protocol = verdict.ProtoUsenet
+				return true
+			}
+			in.Protocol, in.TorrentEvidence, in.Indexer = verdict.ProtoTorrent, true, d.Indexer
+			in.PrivateIndexer = e.o.Trackers != nil && e.o.Trackers.PrivateIndexer(d.Indexer)
+			e.attachTorrent(ctx, in, fv, arr.Provenance{Indexer: d.Indexer}, "")
+			return true
+		}
+	}
+	for _, n := range names {
+		if src, ok := ev.directNames[n]; ok {
+			fv.Evidence = append(fv.Evidence, "release name matches a file in the "+src+" download folder")
+			in.Protocol, in.DirectSource, fv.Source = verdict.ProtoDirect, src, src
+			return true
+		}
+	}
+	for _, n := range names {
+		if ref, ok := ev.torrentNames[n]; ok {
+			// A torrent origin with its own copy of the bytes (the inode check
+			// found no shared file).
+			fv.Evidence = append(fv.Evidence, "release name matches torrent "+ref.hash+" in "+ref.client)
+			in.TorrentEvidence = true
+			e.attachTorrent(ctx, in, fv, arr.Provenance{InfoHash: ref.hash, Client: ref.client}, ref.client)
+			return true
+		}
+	}
+	return false
+}
+
+func (e *Engine) attachTorrent(ctx context.Context, in *verdict.Input, fv *FileVerdict, prov arr.Provenance, only string) {
 	names := e.candidates(prov.Client)
+	if only != "" {
+		names = []string{only}
+	}
 	if len(names) == 0 {
 		if in.Protocol == verdict.ProtoTorrent {
 			in.ClientUnreachable = true
