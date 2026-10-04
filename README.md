@@ -224,6 +224,8 @@ stay out of the file:
 - `${NAME}` is the environment variable `NAME`, or, when `NAME` is unset and
   `NAME_FILE` is set, the contents of that file (Docker/Kubernetes secrets).
 - `${file:/run/secrets/x}` is the contents of a file.
+- References are resolved per value after the file is parsed (in string
+  values and durations), so a variable's content is never read as YAML.
 - The whole file may be [age](https://age-encryption.org)-encrypted
   (`airrbag.yml.age`); set `AIRRBAG_AGE_IDENTITY_FILE` to the identity.
 

@@ -49,7 +49,7 @@ type Instance struct {
 	Name     string `yaml:"name"`
 	Listen   string `yaml:"listen"`
 	Upstream string `yaml:"upstream"`
-	APIKey   string `yaml:"api_key"`
+	APIKey   string `yaml:"api_key" secret:"true"`
 	// App is sonarr, radarr, lidarr, readarr, whisparr or auto (default).
 	App string `yaml:"app"`
 }
@@ -62,8 +62,8 @@ type Client struct {
 	Type     string `yaml:"type"`
 	URL      string `yaml:"url"`
 	Username string `yaml:"username"`
-	Password string `yaml:"password"`
-	APIKey   string `yaml:"api_key"`
+	Password string `yaml:"password" secret:"true"`
+	APIKey   string `yaml:"api_key" secret:"true"`
 	// Path is the download folder of a client without a usable API
 	// (xunlei), in Airrbag's filesystem view.
 	Path string `yaml:"path"`
@@ -153,7 +153,7 @@ type Auth struct {
 	// GrantSecret keys the HMAC that binds delete grants to a caller. Empty
 	// means a random key per process start (grants do not survive restarts,
 	// which is what you want).
-	GrantSecret string `yaml:"grant_secret"`
+	GrantSecret string `yaml:"grant_secret" secret:"true"`
 }
 
 // Dashboard configures the dashboard.
@@ -204,7 +204,7 @@ func (d *Duration) UnmarshalYAML(n *yaml.Node) error {
 	if err := n.Decode(&s); err != nil {
 		return err
 	}
-	v, err := ParseDuration(s)
+	v, err := ParseDuration(Expand(s))
 	if err != nil {
 		return err
 	}
@@ -237,6 +237,13 @@ func Load(path string) (*Config, error) {
 
 // LoadWithWarnings is Load that also returns non-fatal findings (an
 // insecure-permission override) for the caller to log.
+//
+// The file is decoded exactly once, strictly, BEFORE any ${...} is expanded.
+// The inline-secret check runs on that decoded result and expansion then
+// fills in the same structs field by field, so what is checked is what is
+// used: anchors, flow style, quoting, block scalars and duplicate keys are
+// resolved by the one decoder for both. Expanding per field also means an
+// environment value can never inject YAML structure.
 func LoadWithWarnings(path string) (*Config, []string, error) {
 	var warnings []string
 	raw, err := os.ReadFile(path) //nolint:gosec // operator-chosen config path
@@ -247,34 +254,54 @@ func LoadWithWarnings(path string) (*Config, []string, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	warn, err := checkPerms(path, raw)
+	c, err := decode(raw)
+	if err != nil {
+		return nil, nil, err
+	}
+	warn, err := checkPerms(path, InlineSecrets(c))
 	if err != nil {
 		return nil, nil, err
 	}
 	if warn != nil {
 		warnings = append(warnings, warn.Error())
 	}
-	expanded, err := ExpandSecrets(string(raw))
-	if err != nil {
+	if err := expandFields(c); err != nil {
 		return nil, nil, err
 	}
-	c, err := Parse([]byte(expanded))
-	return c, warnings, err
+	c.applyDefaults()
+	if err := c.Validate(); err != nil {
+		return nil, nil, err
+	}
+	return c, warnings, nil
 }
 
-// Parse parses already-expanded YAML.
-func Parse(raw []byte) (*Config, error) {
+// decode is the one strict YAML decoder: unknown fields and duplicate keys
+// are errors, and only a single document is allowed.
+func decode(raw []byte) (*Config, error) {
 	var c Config
 	dec := yaml.NewDecoder(strings.NewReader(string(raw)))
 	dec.KnownFields(true)
 	if err := dec.Decode(&c); err != nil {
 		return nil, fmt.Errorf("parse config: %w", err)
 	}
+	var extra yaml.Node
+	if err := dec.Decode(&extra); err == nil {
+		return nil, errors.New("parse config: more than one YAML document")
+	}
+	return &c, nil
+}
+
+// Parse parses already-expanded YAML.
+func Parse(raw []byte) (*Config, error) {
+	c, err := decode(raw)
+	if err != nil {
+		return nil, err
+	}
 	c.applyDefaults()
 	if err := c.Validate(); err != nil {
 		return nil, err
 	}
-	return &c, nil
+	return c, nil
 }
 
 func (c *Config) applyDefaults() {

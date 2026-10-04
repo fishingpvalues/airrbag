@@ -5,7 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/url"
 	"os"
+	"reflect"
 	"regexp"
 	"runtime"
 	"sort"
@@ -13,7 +15,6 @@ import (
 
 	"filippo.io/age"
 	"filippo.io/age/armor"
-	"gopkg.in/yaml.v3"
 )
 
 // Secret references in the config file:
@@ -83,11 +84,11 @@ const AgeIdentityEnv = "AIRRBAG_AGE_IDENTITY_FILE"
 var ErrInsecurePerms = errors.New("config file contains an inline secret and is readable by group or others; chmod 600 it, move the secret to ${ENV}/${file:...}, or set " + InsecurePermsEnv + "=1")
 
 // checkPerms refuses a config file that group or others can read while it
-// contains a secret written inline. A file whose secrets are all ${...}
-// references (environment, *_FILE, ${file:}) holds nothing worth hiding and
-// may stay readable, so it can live in a git checkout.
-func checkPerms(path string, raw []byte) (warn error, err error) {
-	if runtime.GOOS == "windows" {
+// holds an inline secret. inline lists the offending fields (InlineSecrets).
+// A file whose secrets are all references holds nothing worth hiding and may
+// stay readable, so it can live in a git checkout.
+func checkPerms(path string, inline []string) (warn error, err error) {
+	if runtime.GOOS == "windows" || len(inline) == 0 {
 		return nil, nil
 	}
 	st, err := os.Stat(path)
@@ -97,38 +98,111 @@ func checkPerms(path string, raw []byte) (warn error, err error) {
 	if st.Mode().Perm()&0o077 == 0 {
 		return nil, nil
 	}
-	if !hasInlineSecret(raw) {
-		return nil, nil
-	}
-	e := fmt.Errorf("%s (mode %04o): %w", path, st.Mode().Perm(), ErrInsecurePerms)
+	e := fmt.Errorf("%s (mode %04o; inline: %s): %w", path, st.Mode().Perm(), strings.Join(inline, ", "), ErrInsecurePerms)
 	if os.Getenv(InsecurePermsEnv) == "1" {
 		return e, nil
 	}
 	return nil, e
 }
 
-var onlyRef = regexp.MustCompile(`^\s*\$\{(file:[^}]+|[A-Za-z_][A-Za-z0-9_]*)\}\s*$`)
+// onlyRef is the one accepted non-empty shape of a secret in the file:
+// exactly one ${NAME} or ${file:...} reference, nothing around it.
+var onlyRef = regexp.MustCompile(`^\$\{(file:[^}\s]+|[A-Za-z_][A-Za-z0-9_]*)\}$`)
 
-// hasInlineSecret reports whether any secret field of the unexpanded config
-// holds a literal value instead of a ${...} reference. An unparseable file
-// counts as having one (fail closed); Parse reports the syntax error later.
-func hasInlineSecret(raw []byte) bool {
-	var c Config
-	if err := yaml.Unmarshal(raw, &c); err != nil {
-		return true
-	}
-	inline := func(v string) bool { return strings.TrimSpace(v) != "" && !onlyRef.MatchString(v) }
-	for _, in := range c.Instances {
-		if inline(in.APIKey) {
-			return true
+// InlineSecrets walks the decoded, NOT yet expanded config and returns the
+// path of every secret field (tagged secret:"true", plus credentials embedded
+// in a URL) whose value is anything but empty or a single reference.
+func InlineSecrets(c *Config) []string {
+	var out []string
+	walkStrings(reflect.ValueOf(c).Elem(), "", func(path string, f reflect.StructField, v string) {
+		switch {
+		case f.Tag.Get("secret") == "true":
+			if v != "" && !onlyRef.MatchString(v) {
+				out = append(out, path)
+			}
+		case strings.Contains(v, "@") && (strings.HasPrefix(v, "http://") || strings.HasPrefix(v, "https://")):
+			if u, err := url.Parse(v); err == nil && u.User != nil {
+				if pw, ok := u.User.Password(); ok && pw != "" && !onlyRef.MatchString(pw) {
+					out = append(out, path+" (userinfo)")
+				}
+			}
+		}
+	})
+	return out
+}
+
+// walkStrings calls fn for every string field reachable through structs,
+// pointers and slices, with a dotted yaml path.
+func walkStrings(v reflect.Value, path string, fn func(string, reflect.StructField, string)) {
+	switch v.Kind() {
+	case reflect.Pointer:
+		if !v.IsNil() {
+			walkStrings(v.Elem(), path, fn)
+		}
+	case reflect.Slice:
+		for i := 0; i < v.Len(); i++ {
+			walkStrings(v.Index(i), fmt.Sprintf("%s[%d]", path, i), fn)
+		}
+	case reflect.Struct:
+		t := v.Type()
+		for i := 0; i < t.NumField(); i++ {
+			f := t.Field(i)
+			if !f.IsExported() {
+				continue
+			}
+			name := strings.Split(f.Tag.Get("yaml"), ",")[0]
+			if name == "" || name == "-" {
+				name = f.Name
+			}
+			p := name
+			if path != "" {
+				p = path + "." + name
+			}
+			fv := v.Field(i)
+			if fv.Kind() == reflect.String {
+				fn(p, f, fv.String())
+				continue
+			}
+			walkStrings(fv, p, fn)
 		}
 	}
-	for _, cl := range c.Clients {
-		if inline(cl.Password) || inline(cl.APIKey) {
-			return true
+}
+
+// expandFields resolves ${...} in every string field of the decoded config,
+// in place. Values are substituted as strings and never re-parsed as YAML.
+func expandFields(c *Config) error {
+	var errs []error
+	setStrings(reflect.ValueOf(c).Elem(), func(s string) string {
+		out, err := ExpandSecrets(s)
+		if err != nil {
+			errs = append(errs, err)
+		}
+		return out
+	})
+	return errors.Join(errs...)
+}
+
+func setStrings(v reflect.Value, fn func(string) string) {
+	switch v.Kind() {
+	case reflect.Pointer:
+		if !v.IsNil() {
+			setStrings(v.Elem(), fn)
+		}
+	case reflect.Slice:
+		for i := 0; i < v.Len(); i++ {
+			setStrings(v.Index(i), fn)
+		}
+	case reflect.String:
+		if v.CanSet() {
+			v.SetString(fn(v.String()))
+		}
+	case reflect.Struct:
+		for i := 0; i < v.NumField(); i++ {
+			if v.Type().Field(i).IsExported() {
+				setStrings(v.Field(i), fn)
+			}
 		}
 	}
-	return inline(c.Auth.GrantSecret)
 }
 
 var ageHeader = []byte("age-encryption.org/v1")
