@@ -8,9 +8,9 @@ package config
 import (
 	"errors"
 	"fmt"
+	"net/netip"
 	"net/url"
 	"os"
-	"regexp"
 	"strings"
 	"time"
 
@@ -29,6 +29,13 @@ type Config struct {
 	PathMappings []PathMapping `yaml:"path_mappings"`
 	Trackers     Trackers      `yaml:"trackers"`
 	Guard        Guard         `yaml:"guard"`
+	// Auth configures who may use Airrbag's own endpoints. By default only
+	// whoever the *Arr itself lets in.
+	Auth Auth `yaml:"auth"`
+	// Dashboard configures the /__airrbag/ dashboard.
+	Dashboard Dashboard `yaml:"dashboard"`
+	// Metrics configures /__airrbag/metrics.
+	Metrics Metrics `yaml:"metrics"`
 	// CacheTTL is how long a computed verdict or a client snapshot is reused.
 	CacheTTL Duration `yaml:"cache_ttl"`
 	// HistoryLimit caps how many history records are indexed per instance.
@@ -115,12 +122,52 @@ type Guard struct {
 	// indexer as "keep" when a download client cannot be reached. Default true.
 	FailClosed *bool `yaml:"fail_closed"`
 	// GrantTTL is how long an override confirmed in the UI stays valid.
+	// Default 60s, maximum 10m.
 	GrantTTL Duration `yaml:"grant_ttl"`
+	// AllowOverrideHeader honors X-Airrbag-Override / ?airrbagOverride=
+	// from authenticated API callers (scripts). Off by default: only the
+	// signed-in dialog's one-shot grant can override the guard.
+	AllowOverrideHeader bool `yaml:"allow_override_header"`
 	// Unknown decides what happens to a delete of a file whose origin
 	// Airrbag could not prove: "confirm" (default), "block" or "allow".
 	// A file with any torrent evidence is never "unknown" for the guard: it
 	// is kept, whatever this says.
 	Unknown string `yaml:"unknown"`
+}
+
+// Auth decides who may call Airrbag's endpoints and how the real client
+// address is found.
+type Auth struct {
+	// TrustedProxies are CIDRs (or single IPs) of reverse proxies in front of
+	// Airrbag, for example the docker bridge gateway behind `tailscale serve`.
+	// Only from these is X-Forwarded-For believed; from anyone else it is
+	// dropped and the TCP peer is the client. Default: none.
+	TrustedProxies []string `yaml:"trusted_proxies"`
+	// ForwardAuthHeader names the identity header a trusted SSO proxy
+	// (Authelia, Authentik, oauth2-proxy, Tailscale serve) sets after its own
+	// login, e.g. Remote-User or Tailscale-User-Login. When set, a request
+	// from a trusted proxy carrying a non-empty value is signed in to
+	// Airrbag's endpoints as that user. Requests not from a trusted proxy
+	// never get this treatment. Empty disables it.
+	ForwardAuthHeader string `yaml:"forward_auth_header"`
+	// GrantSecret keys the HMAC that binds delete grants to a caller. Empty
+	// means a random key per process start (grants do not survive restarts,
+	// which is what you want).
+	GrantSecret string `yaml:"grant_secret"`
+}
+
+// Dashboard configures the dashboard.
+type Dashboard struct {
+	// CrossInstance shows every instance's files on any instance's
+	// dashboard. Off by default: a Radarr user sees Radarr only.
+	CrossInstance bool `yaml:"cross_instance"`
+}
+
+// Metrics configures the Prometheus endpoint.
+type Metrics struct {
+	// Public serves /metrics without authentication (scrapers inside a
+	// trusted network). Default false: the scraper sends an *Arr API key.
+	Public bool `yaml:"public"`
 }
 
 // Unknown-file modes for Guard.Unknown.
@@ -181,22 +228,38 @@ func ParseDuration(s string) (time.Duration, error) {
 	return time.ParseDuration(s)
 }
 
-var envRef = regexp.MustCompile(`\$\{([A-Za-z_][A-Za-z0-9_]*)\}`)
-
-// Expand replaces ${NAME} with the environment variable NAME.
-func Expand(s string) string {
-	return envRef.ReplaceAllStringFunc(s, func(m string) string {
-		return os.Getenv(envRef.FindStringSubmatch(m)[1])
-	})
+// Load reads, decrypts (age), expands, parses, defaults and validates a
+// config file. It refuses a file that group or others can read.
+func Load(path string) (*Config, error) {
+	c, _, err := LoadWithWarnings(path)
+	return c, err
 }
 
-// Load reads, expands, parses, defaults and validates a config file.
-func Load(path string) (*Config, error) {
-	raw, err := os.ReadFile(path)
+// LoadWithWarnings is Load that also returns non-fatal findings (an
+// insecure-permission override) for the caller to log.
+func LoadWithWarnings(path string) (*Config, []string, error) {
+	var warnings []string
+	warn, err := checkPerms(path)
 	if err != nil {
-		return nil, fmt.Errorf("read config: %w", err)
+		return nil, nil, err
 	}
-	return Parse([]byte(Expand(string(raw))))
+	if warn != nil {
+		warnings = append(warnings, warn.Error())
+	}
+	raw, err := os.ReadFile(path) //nolint:gosec // operator-chosen config path
+	if err != nil {
+		return nil, nil, fmt.Errorf("read config: %w", err)
+	}
+	raw, err = maybeDecrypt(raw)
+	if err != nil {
+		return nil, nil, err
+	}
+	expanded, err := ExpandSecrets(string(raw))
+	if err != nil {
+		return nil, nil, err
+	}
+	c, err := Parse([]byte(expanded))
+	return c, warnings, err
 }
 
 // Parse parses already-expanded YAML.
@@ -222,7 +285,7 @@ func (c *Config) applyDefaults() {
 		c.HistoryLimit = 100000
 	}
 	if c.Guard.GrantTTL.Duration == 0 {
-		c.Guard.GrantTTL.Duration = 2 * time.Minute
+		c.Guard.GrantTTL.Duration = time.Minute
 	}
 	if c.LogLevel == "" {
 		c.LogLevel = "info"
@@ -253,6 +316,20 @@ func (c *Config) Validate() error {
 	case "", UnknownConfirm, UnknownBlock, UnknownAllow:
 	default:
 		errs = append(errs, fmt.Errorf("guard.unknown must be confirm, block or allow, not %q", c.Guard.Unknown))
+	}
+	if c.Guard.GrantTTL.Duration > 10*time.Minute {
+		errs = append(errs, errors.New("guard.grant_ttl must be at most 10m"))
+	}
+	for i, p := range c.Auth.TrustedProxies {
+		if _, err := ParsePrefix(p); err != nil {
+			errs = append(errs, fmt.Errorf("auth.trusted_proxies[%d]: %w", i, err))
+		}
+	}
+	if c.Auth.ForwardAuthHeader != "" && len(c.Auth.TrustedProxies) == 0 {
+		errs = append(errs, errors.New("auth.forward_auth_header needs auth.trusted_proxies: an identity header from an untrusted peer is spoofable"))
+	}
+	if c.Auth.GrantSecret != "" && len(c.Auth.GrantSecret) < 32 {
+		errs = append(errs, errors.New("auth.grant_secret must be at least 32 characters"))
 	}
 	for i, m := range c.PathMappings {
 		if m.From == "" || m.To == "" {
@@ -285,8 +362,11 @@ func (c *Config) validateInstances() []error {
 		if !httpURL(in.Upstream) {
 			errs = append(errs, fmt.Errorf("%s: upstream must be an http(s) URL", p))
 		}
-		if in.APIKey == "" {
+		switch {
+		case in.APIKey == "":
 			errs = append(errs, fmt.Errorf("%s: api_key is required", p))
+		case IsPlaceholder(in.APIKey):
+			errs = append(errs, fmt.Errorf("%s: api_key is a placeholder, not a real key", p))
 		}
 		if !knownApps[strings.ToLower(in.App)] {
 			errs = append(errs, fmt.Errorf("%s: unknown app %q", p, in.App))
@@ -316,6 +396,9 @@ func (c *Config) validateClients() []error {
 				errs = append(errs, fmt.Errorf("%s: name (to match the *Arr client) or url is required", p))
 			}
 		}
+		if IsPlaceholder(cl.Password) || IsPlaceholder(cl.APIKey) {
+			errs = append(errs, fmt.Errorf("%s: password or api_key is a placeholder, not a real secret", p))
+		}
 		if cl.URL != "" && !httpURL(cl.URL) {
 			errs = append(errs, fmt.Errorf("%s: invalid url", p))
 		}
@@ -326,4 +409,21 @@ func (c *Config) validateClients() []error {
 func httpURL(s string) bool {
 	u, err := url.Parse(s)
 	return err == nil && (u.Scheme == "http" || u.Scheme == "https") && u.Host != ""
+}
+
+// ParsePrefix accepts a CIDR ("172.22.0.0/16") or a single address.
+func ParsePrefix(s string) (netip.Prefix, error) {
+	s = strings.TrimSpace(s)
+	if strings.Contains(s, "/") {
+		p, err := netip.ParsePrefix(s)
+		if err != nil {
+			return netip.Prefix{}, err
+		}
+		return p.Masked(), nil
+	}
+	a, err := netip.ParseAddr(s)
+	if err != nil {
+		return netip.Prefix{}, err
+	}
+	return netip.PrefixFrom(a.Unmap(), a.Unmap().BitLen()), nil
 }

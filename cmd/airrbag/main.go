@@ -35,6 +35,7 @@ import (
 	"github.com/fishingpvalues/airrbag/internal/metrics"
 	"github.com/fishingpvalues/airrbag/internal/paths"
 	"github.com/fishingpvalues/airrbag/internal/proxy"
+	"github.com/fishingpvalues/airrbag/internal/scrub"
 	"github.com/fishingpvalues/airrbag/internal/trackers"
 	"github.com/fishingpvalues/airrbag/internal/webassets"
 )
@@ -113,7 +114,7 @@ func healthcheck(cfgPath, target string) int {
 func logger(level string) *slog.Logger {
 	var l slog.Level
 	_ = l.UnmarshalText([]byte(level))
-	return slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: l}))
+	return slog.New(scrub.NewHandler(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: l}), proxy.Scrubber))
 }
 
 // clientPool shares one client object per address across instances.
@@ -281,12 +282,17 @@ func (g *gate) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func serve(cfgPath string) error {
-	cfg, err := config.Load(cfgPath)
+	cfg, loadWarnings, err := config.LoadWithWarnings(cfgPath)
 	if err != nil {
 		return err
 	}
+	// Every configured secret is scrubbed from logs and JSON bodies.
+	proxy.Scrubber.Set(cfg.Secrets())
 	log := logger(cfg.LogLevel)
 	slog.SetDefault(log)
+	for _, w := range loadWarnings {
+		log.Warn("insecure config accepted", "detail", w)
+	}
 	reg, err := trackers.New(cfg.Trackers)
 	if err != nil {
 		return err
@@ -321,7 +327,13 @@ func serve(cfgPath string) error {
 	errCh := make(chan error, len(cfg.Instances))
 	for _, inst := range cfg.Instances {
 		g := &gate{}
-		srv := &http.Server{Addr: inst.Listen, Handler: g, ReadHeaderTimeout: 10 * time.Second, IdleTimeout: 120 * time.Second}
+		srv := &http.Server{
+			Addr: inst.Listen, Handler: g,
+			ReadHeaderTimeout: 10 * time.Second, IdleTimeout: 120 * time.Second,
+			MaxHeaderBytes: 256 << 10,
+			// Panics and TLS/handshake noise go through the scrubbing logger.
+			ErrorLog: slog.NewLogLogger(log.Handler(), slog.LevelWarn),
+		}
 		servers = append(servers, srv)
 		go func() {
 			log.Info("listening", "instance", inst.Name, "addr", inst.Listen, "upstream", inst.Upstream)
@@ -392,6 +404,7 @@ func startInstance(ctx context.Context, cfg *config.Config, inst config.Instance
 		Name: inst.Name, Upstream: up, Shape: ac.Shape, Status: ac.Status, Engine: eng,
 		Guard: cfg.Guard, Metrics: met, Log: log, Version: version, Script: script, Health: health,
 		Transport: rt, Listen: inst.Listen, Hub: shared,
+		APIKey: inst.APIKey, Auth: cfg.Auth, Dashboard: cfg.Dashboard, MetricsCfg: cfg.Metrics,
 	}))
 
 	refresh := func() {

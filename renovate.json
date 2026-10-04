@@ -1,17 +1,37 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:recommended", ":semanticCommits", "helpers:pinGitHubActionDigestsToSemver"],
-  "labels": ["dependencies"],
-  "schedule": ["before 9am on Monday"],
+  "extends": [
+    "config:recommended",
+    ":semanticCommits",
+    "helpers:pinGitHubActionDigestsToSemver"
+  ],
+  "labels": [
+    "dependencies"
+  ],
+  "schedule": [
+    "before 9am on Monday"
+  ],
   "packageRules": [
     {
-      "matchManagers": ["gomod", "npm", "dockerfile", "github-actions"],
-      "matchUpdateTypes": ["minor", "patch", "digest", "pinDigest"],
+      "matchManagers": [
+        "gomod",
+        "npm",
+        "dockerfile",
+        "github-actions"
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "patch",
+        "digest",
+        "pinDigest"
+      ],
       "automerge": true
     },
     {
       "description": "linuxserver tags: 6.4.4.10685-ls318 -> compare the full version, ls suffix included",
-      "matchPackageNames": ["/^lscr.io/linuxserver//"],
+      "matchPackageNames": [
+        "/^lscr.io/linuxserver//"
+      ],
       "versioning": "regex:^(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)\\.(?<build>\\d+)-ls(?<revision>\\d+)$",
       "automerge": false
     }
@@ -20,9 +40,23 @@
     {
       "customType": "regex",
       "description": "Integration-test images in the CI matrix",
-      "managerFilePatterns": ["/^\\.github/workflows/ci\\.yml$/"],
-      "matchStrings": ["image: (?<depName>lscr\\.io/linuxserver/[a-z]+):(?<currentValue>\\S+)"],
+      "managerFilePatterns": [
+        "/^\\.github/workflows/ci\\.yml$/"
+      ],
+      "matchStrings": [
+        "image: (?<depName>lscr\\.io/linuxserver/[a-z]+):(?<currentValue>\\S+)"
+      ],
       "datasourceTemplate": "docker"
     }
-  ]
+  ],
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "labels": [
+      "security"
+    ],
+    "schedule": [
+      "at any time"
+    ]
+  },
+  "osvVulnerabilityAlerts": true
 }

@@ -30,7 +30,7 @@ guard:
 `
 
 func TestLoad(t *testing.T) {
-	t.Setenv("AIRRBAG_TEST_KEY", "secret")
+	t.Setenv("AIRRBAG_TEST_KEY", "0123456789abcdef0123456789abcdef")
 	p := filepath.Join(t.TempDir(), "a.yml")
 	if err := os.WriteFile(p, []byte(good), 0o600); err != nil {
 		t.Fatal(err)
@@ -40,7 +40,7 @@ func TestLoad(t *testing.T) {
 		t.Fatal(err)
 	}
 	in := c.Instances[0]
-	if in.APIKey != "secret" || in.Upstream != "http://radarr:7878" || in.App != "auto" {
+	if in.APIKey != "0123456789abcdef0123456789abcdef" || in.Upstream != "http://radarr:7878" || in.App != "auto" {
 		t.Errorf("instance = %+v", in)
 	}
 	if c.Clients[0].Password != "pa$$word" || c.Clients[0].Type != "qbittorrent" {

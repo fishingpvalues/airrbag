@@ -1,17 +1,39 @@
 # Airrbag in front of Radarr and Sonarr.
 # Browse to http://<host>:17878 (Radarr) and http://<host>:18989 (Sonarr)
 # instead of the apps' own ports.
+#
+# Airrbag holds every API key and download-client password you give it. The
+# file and the container are locked down accordingly:
+#   - airrbag.yml must not be readable by group/others (chmod 600); it is owned
+#     by the uid the container runs as (here 1000, see `user:`).
+#   - secrets come from Docker secrets (*_FILE) rather than plain environment.
+#   - read-only root filesystem, no capabilities, no privilege escalation.
+#   - published on localhost / your VPN address only, never the internet.
+#   - firewall the *Arr's own ports so browsers can reach them only through
+#     Airrbag: Airrbag can only guard traffic that passes through it.
 services:
   airrbag:
     image: ghcr.io/fishingpvalues/airrbag:latest
     container_name: airrbag
     restart: unless-stopped
+    # The uid that owns ./airrbag.yml (mode 600). Without this the image runs
+    # as distroless nonroot (65532), and the file must be owned by 65532.
+    user: "1000:1000"
     read_only: true
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
     environment:
-      RADARR_API_KEY: ${RADARR_API_KEY}
-      SONARR_API_KEY: ${SONARR_API_KEY}
-      QBITTORRENT_PASSWORD: ${QBITTORRENT_PASSWORD}
-      SABNZBD_API_KEY: ${SABNZBD_API_KEY}
+      # ${RADARR_API_KEY} in airrbag.yml falls back to the file named here.
+      RADARR_API_KEY_FILE: /run/secrets/radarr_api_key
+      SONARR_API_KEY_FILE: /run/secrets/sonarr_api_key
+      QBITTORRENT_PASSWORD_FILE: /run/secrets/qbittorrent_password
+      SABNZBD_API_KEY_FILE: /run/secrets/sabnzbd_api_key
+    secrets:
+      - radarr_api_key
+      - sonarr_api_key
+      - qbittorrent_password
+      - sabnzbd_api_key
     volumes:
       - ./airrbag.yml:/config/airrbag.yml:ro
       # Same disks the *Arr and the torrent client use, read-only.
@@ -20,3 +42,13 @@ services:
       # Bind to localhost or your VPN/tailnet address, never the internet.
       - "127.0.0.1:17878:17878"
       - "127.0.0.1:18989:18989"
+
+secrets:
+  radarr_api_key:
+    file: ./secrets/radarr_api_key
+  sonarr_api_key:
+    file: ./secrets/sonarr_api_key
+  qbittorrent_password:
+    file: ./secrets/qbittorrent_password
+  sabnzbd_api_key:
+    file: ./secrets/sabnzbd_api_key

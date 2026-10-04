@@ -155,3 +155,28 @@ with reasons. It has no I/O and carries most of the test cases.
 | `web/src/dashboard` | Dashboard (Preact + TypeScript, esbuild) |
 | `web/src/shared` | Labels, colours and formatting used by both |
 | `assets` | Logo sources; `scripts/icons.sh` renders the PNG set |
+
+## Security design
+
+airrbag holds every key of the stack it fronts, so its rule is: no new way in,
+and no way for a secret out. The details and the threat model are in
+[SECURITY.md](../SECURITY.md); the design choices behind them:
+
+- **No own login.** Authentication is delegated to the *Arr (API key in
+  constant time, otherwise the caller's cookie/basic auth replayed against the
+  *Arr's `/system/status` with the real client address). A second password
+  store would be a second thing to get wrong and to keep in sync; delegating
+  inherits the *Arr's own fixes. 2FA comes from an SSO proxy in front
+  (`auth.forward_auth_header`, trusted proxies only), not from a homemade TOTP.
+- **The client address is a security input.** "Authentication disabled for
+  local addresses" makes it one, so forwarding headers are accepted only from
+  `auth.trusted_proxies` and taken right-to-left until the first untrusted hop.
+- **Grants instead of a bypass header.** The dialog registers a server-side,
+  single-use grant keyed by HMAC(identity, method, URL, body hash) with a short
+  TTL. Nothing secret travels to the browser, a grant cannot be replayed or
+  moved to another URL or user, and the raw override header is opt-in.
+- **Scrub at the edges.** Secrets are removed from every log record (a slog
+  handler), every JSON body (`writeJSON`) and the metrics output, with tests
+  that push the key through every endpoint.
+- **Config hygiene at load time.** Group/world-readable configs and
+  placeholder secrets are refused before anything starts.

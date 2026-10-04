@@ -218,8 +218,19 @@ process fronts.
 
 ## Configuration
 
-Commented example: [`examples/airrbag.yml`](examples/airrbag.yml). `${NAME}`
-anywhere in the file is replaced with the environment variable `NAME`.
+Commented example: [`examples/airrbag.yml`](examples/airrbag.yml). Secrets
+stay out of the file:
+
+- `${NAME}` is the environment variable `NAME`, or, when `NAME` is unset and
+  `NAME_FILE` is set, the contents of that file (Docker/Kubernetes secrets).
+- `${file:/run/secrets/x}` is the contents of a file.
+- The whole file may be [age](https://age-encryption.org)-encrypted
+  (`airrbag.yml.age`); set `AIRRBAG_AGE_IDENTITY_FILE` to the identity.
+
+airrbag refuses to start when the config file is readable by group or others
+(`chmod 600`; `AIRRBAG_ALLOW_INSECURE_CONFIG=1` downgrades this to a warning
+for filesystems without POSIX permissions), and when a key or password is
+still a template value such as `changeme` or `<your api key>`.
 
 | Key | Default | Meaning |
 |-----|---------|---------|
@@ -243,34 +254,75 @@ anywhere in the file is replaced with the environment variable `NAME`.
 | `guard.dry_run` | `false` | Log instead of refusing |
 | `guard.fail_closed` | `true` | A check that cannot run (an *Arr or client error) answers 503 |
 | `guard.unknown` | `confirm` | Delete of a file with no provenance evidence: `confirm` asks once in the UI and lets API callers through with a WARN and `airrbag_unknown_deletes_total`; `block` refuses (409) without a grant; `allow` only shows the badge |
-| `guard.grant_ttl` | `2m` | Lifetime of a confirmation given in the dialog |
+| `guard.grant_ttl` | `60s` | Lifetime of a confirmation given in the dialog (max `10m`) |
+| `guard.allow_override_header` | `false` | Honor `X-Airrbag-Override` / `?airrbagOverride=` from signed-in API callers |
+| `auth.trusted_proxies[]` | none | CIDRs/IPs of reverse proxies in front; only from these is `X-Forwarded-For` believed |
+| `auth.forward_auth_header` | none | SSO identity header (e.g. `Remote-User`) a trusted proxy sets after its own login |
+| `auth.grant_secret` | random per start | HMAC key binding confirmations to a caller (32+ characters) |
+| `dashboard.cross_instance` | `false` | Show every instance on any instance's dashboard |
+| `metrics.public` | `false` | Serve `/__airrbag/metrics` without authentication |
 | `cache_ttl` | `5m` | History index and verdict cache lifetime |
 | `history_limit` | `100000` | History records indexed per instance |
 | `log_level` | `info` | `debug`, `info`, `warn`, `error` |
 
-### Exposure
+### Security
 
-airrbag has no login of its own. For its API it replays the caller's *Arr
-credentials (session cookie, `X-Api-Key`, basic auth) against the *Arr and
-answers only if the *Arr accepts them. Verdicts are never shown to a caller
-the *Arr rejects, including in a refused delete.
+airrbag holds every *Arr API key and download-client password you give it, so
+it is built to be no easier to get into than the *Arr itself, and harder to
+get secrets out of. The threat model is in [SECURITY.md](SECURITY.md).
+
+**Sign-in is the *Arr's.** airrbag has no login and no user database. A call to
+its pages or API is accepted when the caller is signed in to the *Arr:
+
+1. through a trusted SSO proxy (`auth.forward_auth_header`, see below), or
+2. with the *Arr's API key (compared in constant time), or
+3. with credentials the *Arr itself accepts - session cookie, basic auth, or
+   "disabled for local addresses" - checked by replaying them against the
+   *Arr's `/system/status` with the real client address.
+
+Accepted checks are cached for 30 s, refused ones for 5 s; 30 failures a minute
+from one address get `429`. Verdicts are never shown to a caller the *Arr
+rejects, including in a refused delete.
+
+**2FA.** The *Arrs have none, and airrbag deliberately does not invent its own.
+Put an SSO proxy with 2FA in front (Authelia, Authentik, oauth2-proxy, or
+`tailscale serve` with Tailscale identity headers), list it in
+`auth.trusted_proxies` and name its identity header in
+`auth.forward_auth_header`. The header is ignored from anyone else.
+
+**Client address.** `X-Forwarded-For`, `Forwarded` and `X-Real-IP` from a
+client are dropped; only a peer in `auth.trusted_proxies` may supply them. So
+nobody can make the *Arr believe a request is "local". Behind `tailscale serve`
+or a reverse proxy on the same host, add that proxy's address (for Docker, the
+bridge gateway) to `auth.trusted_proxies`, or every client looks like the proxy.
+
+**Overrides.** "Delete anyway" in the dialog creates a grant that is bound to
+the signed-in caller, the method, the exact URL and body, works once and
+expires after `guard.grant_ttl`. State-changing calls must carry
+`X-Airrbag-Request: 1` and come from the same origin (CSRF). The raw
+`X-Airrbag-Override` header is ignored unless `guard.allow_override_header`.
+
+**Secrets never leave.** Every configured secret is scrubbed from logs, error
+responses and metrics; a test sends the API key through every endpoint and
+fails if it appears anywhere. The dashboard shows secrets only as set/unset.
 
 Open without credentials, and only these:
 
 | Open | Why |
 |------|-----|
-| `/__airrbag/health` | container healthcheck |
-| `/__airrbag/metrics` | Prometheus; counts only |
-| `/__airrbag/airrbag.js`, `/__airrbag/` | static script and page; their data calls need *Arr auth |
+| `/__airrbag/health` | container healthcheck; says `{"status":"ok"}` and nothing else |
+| `/__airrbag/airrbag.js`, `/__airrbag/`, its assets | static code; every data call needs *Arr auth |
 
-airrbag holds *Arr API keys and download-client passwords. Mount the config
-read-only, pass secrets through the environment, and bind the listeners to
-localhost, a LAN you trust, or a VPN or tailnet address. It is not meant to
-face the internet; neither is the *Arr behind it.
+airrbag's own responses carry a strict CSP (no inline script or style),
+`X-Frame-Options: DENY`, `nosniff`, `Referrer-Policy`, `Permissions-Policy` and
+COOP/CORP. The *Arr's own pages pass through with their own headers.
 
-If the *Arr uses "authentication disabled for local addresses", it sees
-airrbag's address. airrbag forwards `X-Forwarded-For`, but real authentication
-on the *Arr is the better choice.
+**Deployment.** Bind the listeners to localhost, a LAN you trust or a VPN or
+tailnet address, never the internet. Firewall the *Arr's own port so browsers
+reach it only through airrbag: airrbag can only guard traffic that passes
+through it. The image is distroless and non-root; run it with
+`read_only: true`, `cap_drop: [ALL]` and `no-new-privileges` as in
+[`examples/docker-compose.yml`](examples/docker-compose.yml).
 
 ### Network
 

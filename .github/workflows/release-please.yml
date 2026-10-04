@@ -20,7 +20,7 @@ jobs:
       # Opens/updates the release PR from Conventional Commits. Merging it
       # writes CHANGELOG.md, bumps version.txt and creates the vX.Y.Z tag.
       # Pre-1.0: a breaking change bumps the minor, a feature the patch.
-      - uses: googleapis/release-please-action@v4
+      - uses: googleapis/release-please-action@5c625bfb5d1ff62eadeeb3772007f7f66fdcf071 # v4
         id: release
         with:
           config-file: release-please-config.json

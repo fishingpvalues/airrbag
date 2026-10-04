@@ -56,7 +56,13 @@ func TestMain(m *testing.M) {
 }
 
 func TestHealth(t *testing.T) {
+	// Liveness for anyone (container healthchecks have no credentials)...
 	resp, body := get(t, proxyURL+"/__airrbag/health", nil)
+	if resp.StatusCode != 200 || !strings.Contains(body, `"status":"ok"`) {
+		t.Fatalf("health %d %s", resp.StatusCode, body)
+	}
+	// ...details only for a signed-in caller.
+	resp, body = get(t, proxyURL+"/__airrbag/health", map[string]string{"X-Api-Key": arrKey})
 	if resp.StatusCode != 200 {
 		t.Fatalf("health %d %s", resp.StatusCode, body)
 	}
@@ -64,6 +70,16 @@ func TestHealth(t *testing.T) {
 	_ = json.Unmarshal([]byte(body), &h)
 	if h["app"] != app {
 		t.Fatalf("detected app %v, want %s", h["app"], app)
+	}
+}
+
+func TestWrongKeyRefused(t *testing.T) {
+	if r, _ := get(t, proxyURL+"/__airrbag/api/info", map[string]string{"X-Api-Key": "wrong-key-for-integration-test"}); r.StatusCode != 401 {
+		t.Fatalf("a wrong key must be refused, got %d", r.StatusCode)
+	}
+	if r, _ := get(t, proxyURL+"/__airrbag/metrics", nil); r.StatusCode != 401 && r.StatusCode != 200 {
+		// 200 only if the *Arr treats the CI runner as a local address.
+		t.Fatalf("metrics without credentials: %d", r.StatusCode)
 	}
 }
 

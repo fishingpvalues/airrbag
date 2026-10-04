@@ -49,6 +49,9 @@ export async function api(path: string, init?: RequestInit): Promise<Response> {
   const key = await arrApiKey(cfg.base.replace(/\/__airrbag$/, ""), nativeFetch);
   const headers = new Headers((init && init.headers) || undefined);
   if (key) headers.set("X-Api-Key", key);
+  // Airrbag refuses state-changing calls without this header (CSRF guard):
+  // a cross-site page cannot add it without a CORS preflight Airrbag never answers.
+  headers.set("X-Airrbag-Request", "1");
   return nativeFetch(cfg.base + "/api" + path, Object.assign({ credentials: "same-origin" }, init || {}, { headers }));
 }
 

@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/netip"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -130,12 +131,23 @@ type upstream struct {
 	deletes atomic.Int32
 	html    []byte
 	gz      bool
+	// localOK mimics "authentication disabled for local addresses": a
+	// private/loopback X-Forwarded-For passes without credentials.
+	localOK bool
+	// lastHeaders is the header set of the last proxied API request.
+	lastHeaders atomic.Value
 }
 
 func newUpstream(t *testing.T) *upstream {
 	u := &upstream{html: []byte("<html><body><div id=root></div></body></html>")}
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/v3/system/status", func(w http.ResponseWriter, r *http.Request) {
+		if u.localOK {
+			if a, err := netip.ParseAddr(r.Header.Get("X-Forwarded-For")); err == nil && (a.IsPrivate() || a.IsLoopback()) {
+				_, _ = w.Write([]byte(`{"appName":"Radarr","version":"6.0.0"}`))
+				return
+			}
+		}
 		if c, err := r.Cookie("RadarrAuth"); err != nil || c.Value != "good" {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
@@ -143,6 +155,7 @@ func newUpstream(t *testing.T) *upstream {
 		_, _ = w.Write([]byte(`{"appName":"Radarr","version":"6.0.0"}`))
 	})
 	mux.HandleFunc("/api/v3/", func(w http.ResponseWriter, r *http.Request) {
+		u.lastHeaders.Store(r.Header.Clone())
 		if r.Method == http.MethodDelete {
 			u.deletes.Add(1)
 		}
@@ -171,6 +184,11 @@ func newUpstream(t *testing.T) *upstream {
 
 func newServer(t *testing.T, up *upstream, guard config.Guard) *Server {
 	t.Helper()
+	return newServerWith(t, up, guard, nil)
+}
+
+func newServerWith(t *testing.T, up *upstream, guard config.Guard, mutate func(*Options)) *Server {
+	t.Helper()
 	dir := t.TempDir()
 	seed := filepath.Join(dir, "seed", "Movie.mkv")
 	_ = os.MkdirAll(filepath.Dir(seed), 0o755)
@@ -191,14 +209,25 @@ func newServer(t *testing.T, up *upstream, guard config.Guard) *Server {
 	eng := engine.New(engine.Options{Instance: "radarr", Arr: fa, Torrent: map[string]clients.TorrentClient{"qB": qb}, Trackers: reg, FailClosed: true})
 	u, _ := url.Parse(up.srv.URL)
 	shape, _ := arr.ShapeFor("radarr", 6)
-	return New(Options{Name: "radarr", Upstream: u, Shape: shape, Status: arr.Status{Version: "6.0.0"},
-		Engine: eng, Guard: guard, Version: "test", Script: []byte("/*js*/")})
+	o := Options{Name: "radarr", Upstream: u, Shape: shape, Status: arr.Status{Version: "6.0.0"},
+		Engine: eng, Guard: guard, Version: "test", Script: []byte("/*js*/"), APIKey: testAPIKey}
+	if mutate != nil {
+		mutate(&o)
+	}
+	return New(o)
 }
+
+// testAPIKey is the configured *Arr API key in proxy tests.
+const testAPIKey = "0123456789abcdef0123456789abcdef"
 
 func do(t *testing.T, h http.Handler, method, target string, body string, hdr map[string]string) *httptest.ResponseRecorder {
 	t.Helper()
 	req := httptest.NewRequest(method, target, strings.NewReader(body))
 	req.AddCookie(&http.Cookie{Name: "RadarrAuth", Value: "good"})
+	if method == http.MethodPost {
+		// What the injected script and the dashboard send (CSRF guard).
+		req.Header.Set("X-Airrbag-Request", "1")
+	}
 	for k, v := range hdr {
 		req.Header.Set(k, v)
 	}
@@ -259,9 +288,13 @@ func TestGuard(t *testing.T) {
 		t.Fatalf("a grant is single-use, got %d", rec.Code)
 	}
 
-	// Header override for API users.
-	if rec = do(t, s, http.MethodDelete, "/api/v3/moviefile/10", "", map[string]string{"X-Airrbag-Override": "ratio done"}); rec.Code != http.StatusOK {
-		t.Fatalf("override header: %d", rec.Code)
+	// A raw override header is ignored unless guard.allow_override_header.
+	if rec = do(t, s, http.MethodDelete, "/api/v3/moviefile/10", "", map[string]string{"X-Airrbag-Override": "ratio done"}); rec.Code != http.StatusConflict {
+		t.Fatalf("override header must be ignored by default: %d", rec.Code)
+	}
+	so := newServer(t, up, config.Guard{AllowOverrideHeader: true})
+	if rec = do(t, so, http.MethodDelete, "/api/v3/moviefile/10", "", map[string]string{"X-Airrbag-Override": "ratio done"}); rec.Code != http.StatusOK {
+		t.Fatalf("override header with allow_override_header: %d", rec.Code)
 	}
 
 	// A delete that touches no files passes.
@@ -362,7 +395,7 @@ func newUnknownServer(t *testing.T, up *upstream, guard config.Guard, clientDown
 	u, _ := url.Parse(up.srv.URL)
 	shape, _ := arr.ShapeFor("radarr", 6)
 	return New(Options{Name: "radarr", Upstream: u, Shape: shape, Status: arr.Status{Version: "6.0.0"},
-		Engine: eng, Guard: guard, Version: "test", Script: []byte("/*js*/")})
+		Engine: eng, Guard: guard, Version: "test", Script: []byte("/*js*/"), APIKey: testAPIKey})
 }
 
 func TestGuardUnknownModes(t *testing.T) {

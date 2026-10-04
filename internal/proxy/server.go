@@ -13,6 +13,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httputil"
+	"net/netip"
 	"net/url"
 	"regexp"
 	"strconv"
@@ -24,6 +25,7 @@ import (
 	"github.com/fishingpvalues/airrbag/internal/engine"
 	"github.com/fishingpvalues/airrbag/internal/hub"
 	"github.com/fishingpvalues/airrbag/internal/metrics"
+	"github.com/fishingpvalues/airrbag/internal/scrub"
 	"github.com/fishingpvalues/airrbag/internal/verdict"
 )
 
@@ -53,6 +55,12 @@ type Options struct {
 	// Hub is shared by every instance of the process. When nil the server
 	// gets a private one (tests, single-instance use).
 	Hub *hub.Hub
+	// APIKey is this instance's *Arr API key, for constant-time comparison.
+	APIKey string
+	// Auth, Dashboard and MetricsCfg carry the security settings.
+	Auth       config.Auth
+	Dashboard  config.Dashboard
+	MetricsCfg config.Metrics
 }
 
 // Server serves one *Arr instance.
@@ -63,6 +71,7 @@ type Server struct {
 	auth    *authCache
 	grants  *grantStore
 	hub     *hub.Hub
+	net     *netPolicy
 }
 
 // maxInjectBody caps how much HTML is buffered for injection.
@@ -90,12 +99,23 @@ func New(o Options) *Server {
 	if ac == nil {
 		ac = &http.Client{Timeout: 10 * time.Second, Transport: o.Transport}
 	}
-	s.auth = newAuthCache(o.Upstream, o.Shape.API, ac)
+	var trusted []netip.Prefix
+	for _, p := range o.Auth.TrustedProxies {
+		if pf, err := config.ParsePrefix(p); err == nil {
+			trusted = append(trusted, pf)
+		}
+	}
+	s.net = newNetPolicy(trusted, o.Auth.ForwardAuthHeader)
+	macKey := []byte(o.Auth.GrantSecret)
+	if len(macKey) == 0 {
+		macKey = randomKey(32)
+	}
+	s.auth = newAuthCache(o.Upstream, o.Shape.API, o.APIKey, ac, s.net, macKey)
 	ttl := o.Guard.GrantTTL.Duration
 	if ttl == 0 {
-		ttl = 2 * time.Minute
+		ttl = time.Minute
 	}
-	s.grants = newGrantStore(ttl)
+	s.grants = newGrantStore(ttl, macKey)
 	s.hub = o.Hub
 	if s.hub == nil {
 		s.hub = hub.New(o.Version, nil)
@@ -107,11 +127,34 @@ func New(o Options) *Server {
 	return s
 }
 
+// rewrite builds the upstream request. httputil already drops hop-by-hop
+// headers and the client's X-Forwarded-*; they are only carried over from a
+// trusted proxy, so a client cannot make the *Arr believe it is "local".
 func (s *Server) rewrite(pr *httputil.ProxyRequest) {
 	pr.SetURL(s.o.Upstream)
+	trusted := s.net.fromTrusted(pr.In)
+	if trusted {
+		if xff := pr.In.Header.Values("X-Forwarded-For"); len(xff) > 0 {
+			pr.Out.Header["X-Forwarded-For"] = append([]string(nil), xff...)
+		}
+	}
 	pr.SetXForwarded()
+	if trusted {
+		for _, h := range []string{"X-Forwarded-Proto", "X-Forwarded-Host"} {
+			if v := pr.In.Header.Get(h); v != "" {
+				pr.Out.Header.Set(h, v)
+			}
+		}
+	} else {
+		pr.Out.Header.Del("Forwarded")
+		pr.Out.Header.Del("X-Real-Ip")
+		if s.net.fwdHeader != "" {
+			pr.Out.Header.Del(s.net.fwdHeader)
+		}
+	}
 	pr.Out.Host = pr.In.Host
 	pr.Out.Header.Del("X-Airrbag-Override")
+	pr.Out.Header.Del("X-Airrbag-Request")
 	if wantsHTML(pr.In) {
 		// Only gzip can be decoded for injection without extra dependencies.
 		pr.Out.Header.Set("Accept-Encoding", "gzip")
@@ -217,11 +260,18 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.rp.ServeHTTP(w, r)
 }
 
+// Scrubber removes configured secrets from every JSON body Airrbag writes
+// (error messages can quote an upstream URL or response). Set once at start.
+var Scrubber = scrub.New(nil)
+
 func writeJSON(w http.ResponseWriter, code int, v any) {
+	var buf bytes.Buffer
+	_ = json.NewEncoder(&buf).Encode(v)
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Cache-Control", "no-store")
+	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.WriteHeader(code)
-	_ = json.NewEncoder(w).Encode(v)
+	_, _ = w.Write(Scrubber.Bytes(buf.Bytes()))
 }
 
 // guard returns true when it answered the request itself.
@@ -236,17 +286,24 @@ func (s *Server) guard(w http.ResponseWriter, r *http.Request) bool {
 
 	target, ok := ParseDelete(s.o.Shape, r.URL.Path, r.URL.Query(), body)
 	if !ok {
-		return false
-	}
-	if override := s.override(r, body); override != "" {
-		s.o.Log.Info("guard override", "instance", s.o.Name, "path", r.URL.Path, "reason", override)
-		s.o.Metrics.Add("airrbag_guard_overridden_total", 1, "instance", s.o.Name)
-		s.record(r, hub.Overridden, "delete confirmed despite the guard", nil, override)
+		s.stripOverride(r)
 		return false
 	}
 	// Unauthenticated requests are the *Arr's to reject; never compute or
-	// reveal verdicts for them.
-	if !s.auth.ok(r) {
+	// reveal verdicts for them, and never let them spend a grant.
+	id, limited := s.auth.who(r)
+	if limited {
+		writeJSON(w, http.StatusTooManyRequests, map[string]string{"error": "airrbag: too many failed sign-ins from this address"})
+		return true
+	}
+	if id == "" {
+		s.stripOverride(r)
+		return false
+	}
+	if override := s.override(r, id, body); override != "" {
+		s.o.Log.Info("guard override", "instance", s.o.Name, "path", r.URL.Path, "reason", override)
+		s.o.Metrics.Add("airrbag_guard_overridden_total", 1, "instance", s.o.Name)
+		s.record(r, hub.Overridden, "delete confirmed despite the guard", nil, override)
 		return false
 	}
 	ctx, cancel := context.WithTimeout(r.Context(), 60*time.Second)
@@ -263,7 +320,7 @@ func (s *Server) guard(w http.ResponseWriter, r *http.Request) bool {
 				"description": "A download client could not be reached, so airrbag cannot tell whether a private seed is still owed.",
 				"airrbag":     true,
 				"error":       msg,
-				"override":    "retry after confirming in the Airrbag dialog, or send X-Airrbag-Override: <reason>",
+				"override":    "retry after confirming in the Airrbag dialog",
 			})
 			return true
 		}
@@ -323,7 +380,7 @@ func (s *Server) guard(w http.ResponseWriter, r *http.Request) bool {
 		"reason":      reason,
 		"keep":        keep,
 		"unknown":     unknown,
-		"override":    "confirm in the Airrbag dialog, or repeat with header X-Airrbag-Override: <reason>",
+		"override":    "confirm in the Airrbag dialog",
 	})
 	return true
 }
@@ -358,6 +415,7 @@ func (s *Server) targetVerdicts(ctx context.Context, t Target) ([]engine.FileVer
 var detailRoutes = regexp.MustCompile(`/(movie|series|artist|author)/([^/?#]+)`)
 
 func (s *Server) serveOwn(w http.ResponseWriter, r *http.Request, rest string) {
+	setBaseSecurityHeaders(w)
 	switch {
 	case rest == "/airrbag.js":
 		if len(s.o.Script) == 0 {
@@ -378,19 +436,46 @@ func (s *Server) serveOwn(w http.ResponseWriter, r *http.Request, rest string) {
 	case rest == "/health":
 		s.health(w, r)
 	case rest == "/metrics":
-		s.o.Metrics.Handler().ServeHTTP(w, r)
+		if !s.o.MetricsCfg.Public {
+			if id, limited := s.auth.who(r); id == "" {
+				s.unauthorized(w, limited)
+				return
+			}
+		}
+		sw := &scrubWriter{ResponseWriter: w}
+		s.o.Metrics.Handler().ServeHTTP(sw, r)
+		sw.finish()
 	case strings.HasPrefix(rest, "/api/"):
-		if !s.auth.ok(r) {
-			writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "sign in to the *Arr first"})
+		id, limited := s.auth.who(r)
+		if id == "" {
+			s.unauthorized(w, limited)
 			return
 		}
-		s.serveAPI(w, r, strings.TrimPrefix(rest, "/api"))
+		if r.Method != http.MethodGet && r.Method != http.MethodHead && !sameOrigin(r) {
+			writeJSON(w, http.StatusForbidden, map[string]string{"error": "airrbag: cross-site request refused (send X-Airrbag-Request: 1 from the same origin)"})
+			return
+		}
+		s.serveAPI(w, r.WithContext(withIdentity(r.Context(), id)), strings.TrimPrefix(rest, "/api"))
 	default:
 		http.NotFound(w, r)
 	}
 }
 
+func (s *Server) unauthorized(w http.ResponseWriter, limited bool) {
+	if limited {
+		writeJSON(w, http.StatusTooManyRequests, map[string]string{"error": "too many failed sign-ins from this address; wait a minute"})
+		return
+	}
+	writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "sign in to the *Arr first"})
+}
+
+// health answers liveness to anyone (the container healthcheck has no
+// credentials) but reveals details only to a signed-in caller.
 func (s *Server) health(w http.ResponseWriter, r *http.Request) {
+	if !s.auth.ok(r) {
+		writeJSON(w, http.StatusOK, map[string]any{"status": "ok"})
+		return
+	}
 	n, at, err := s.o.Engine.IndexStats()
 	h := map[string]any{
 		"status": "ok", "instance": s.o.Name, "app": s.o.Shape.App, "appVersion": s.o.Status.Version,
@@ -523,7 +608,7 @@ func (s *Server) apiGrant(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "bad request"})
 		return
 	}
-	s.grants.put(grantKey(cr.Method, u, []byte(cr.Body)))
+	s.grants.put(identityFrom(r.Context()), grantKey(cr.Method, u, []byte(cr.Body)))
 	s.o.Log.Info("guard grant issued", "instance", s.o.Name, "path", u.Path, "reason", cr.Reason)
 	writeJSON(w, http.StatusOK, map[string]any{"ok": true, "ttlSeconds": int(s.grants.ttl / time.Second)})
 }
@@ -558,10 +643,9 @@ func (s *Server) unknownBlocks(r *http.Request, keep, unknown []engine.FileVerdi
 	return false
 }
 
-// override returns why a guarded delete may pass without a check: the
-// X-Airrbag-Override header, the airrbagOverride query parameter (removed
-// before the request goes upstream) or a single-use grant from the dialog.
-func (s *Server) override(r *http.Request, body []byte) string {
+// stripOverride removes override inputs so they never reach the *Arr, and
+// returns the raw value if one was sent.
+func (s *Server) stripOverride(r *http.Request) string {
 	q := r.URL.Query()
 	override := r.Header.Get("X-Airrbag-Override")
 	if override == "" {
@@ -571,8 +655,23 @@ func (s *Server) override(r *http.Request, body []byte) string {
 		q.Del("airrbagOverride")
 		r.URL.RawQuery = q.Encode()
 	}
-	if override == "" && s.grants.take(grantKey(r.Method, r.URL, body)) {
-		override = "confirmed in the Airrbag dialog"
-	}
+	r.Header.Del("X-Airrbag-Override")
 	return override
+}
+
+// override returns why a guarded delete from signed-in caller id may pass
+// without a check: a single-use grant from the dialog, or (only with
+// guard.allow_override_header) an X-Airrbag-Override header / query.
+func (s *Server) override(r *http.Request, id identity, body []byte) string {
+	raw := s.stripOverride(r)
+	if s.grants.take(id, grantKey(r.Method, r.URL, body)) {
+		return "confirmed in the Airrbag dialog"
+	}
+	if raw != "" && s.o.Guard.AllowOverrideHeader {
+		if len(raw) > 200 {
+			raw = raw[:200]
+		}
+		return "header: " + raw
+	}
+	return ""
 }
