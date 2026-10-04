@@ -247,7 +247,20 @@ func (s *Server) ownPath(p string) (string, bool) {
 }
 
 // ServeHTTP implements http.Handler.
+// Alias is the short, typeable address of the dashboard. It only redirects to
+// Prefix: Airrbag's own pages stay under the collision-safe prefix, and the
+// redirect stays on the *Arr's origin so its sign-in cookie still applies.
+const Alias = "/airrbag"
+
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodGet || r.Method == http.MethodHead {
+		for _, base := range []string{s.urlBase + Alias, Alias} {
+			if r.URL.Path == base || r.URL.Path == base+"/" {
+				http.Redirect(w, r, s.urlBase+Prefix+"/", http.StatusFound)
+				return
+			}
+		}
+	}
 	if rest, ok := s.ownPath(r.URL.Path); ok {
 		s.serveOwn(w, r, rest)
 		return

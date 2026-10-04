@@ -198,7 +198,7 @@ The reason is logged.
 
 ### Dashboard
 
-`/__airrbag/` on any listener opens the dashboard, drawn like the *Arr UIs
+`/airrbag` (a redirect) or `/__airrbag/` on any listener opens the dashboard, drawn like the *Arr UIs
 (sidebar, page toolbar, dense tables, the same labels) in dark or light,
 following the system setting:
 
