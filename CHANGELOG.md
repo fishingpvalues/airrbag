@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.3.0](https://github.com/fishingpvalues/airrbag/compare/v0.2.0...v0.3.0) (2026-10-04)
+
+
+### ⚠ BREAKING CHANGES
+
+* **security:** the X-Airrbag-Override header and ?airrbagOverride= are ignored unless guard.allow_override_header is true; POSTs to /__airrbag/api need X-Airrbag-Request: 1; the config file must not be group/world-readable.
+
+### Features
+
+* **security:** delegated auth, bound grants, secret hygiene, scanners ([#7](https://github.com/fishingpvalues/airrbag/issues/7)) ([3c80b8c](https://github.com/fishingpvalues/airrbag/commit/3c80b8cc441e8039be051fdcce10721987c14d9b))
+
 ## [0.2.0](https://github.com/fishingpvalues/airrbag/compare/v0.1.0...v0.2.0) (2026-10-04)
 
 
