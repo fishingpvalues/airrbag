@@ -1,0 +1,491 @@
+// Package proxy is the reverse proxy Airrbag puts in front of an *Arr: it
+// injects the browser script into HTML, serves Airrbag's own endpoints under
+// /__airrbag/, and guards DELETE requests that would remove a kept file.
+package proxy
+
+import (
+	"bytes"
+	"compress/gzip"
+	"context"
+	_ "embed"
+	"encoding/json"
+	"fmt"
+	"io"
+	"log/slog"
+	"net/http"
+	"net/http/httputil"
+	"net/url"
+	"regexp"
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/fishingpvalues/airrbag/internal/arr"
+	"github.com/fishingpvalues/airrbag/internal/config"
+	"github.com/fishingpvalues/airrbag/internal/engine"
+	"github.com/fishingpvalues/airrbag/internal/metrics"
+	"github.com/fishingpvalues/airrbag/internal/verdict"
+)
+
+// Prefix is the reserved path segment for Airrbag's own endpoints.
+const Prefix = "/__airrbag"
+
+//go:embed page.html
+var listsPage []byte
+
+// Options configure a Server.
+type Options struct {
+	Name     string
+	Upstream *url.URL
+	Shape    arr.Shape
+	Status   arr.Status
+	Engine   *engine.Engine
+	Guard    config.Guard
+	Metrics  *metrics.Registry
+	Log      *slog.Logger
+	Version  string
+	Script   []byte
+	// Transport overrides the upstream transport (tests).
+	Transport http.RoundTripper
+	// AuthClient checks credentials against the upstream (tests may override).
+	AuthClient *http.Client
+	Health     func(ctx context.Context) map[string]string
+}
+
+// Server serves one *Arr instance.
+type Server struct {
+	o       Options
+	urlBase string
+	rp      *httputil.ReverseProxy
+	auth    *authCache
+	grants  *grantStore
+}
+
+// maxInjectBody caps how much HTML is buffered for injection.
+const maxInjectBody = 8 << 20
+
+// maxGuardBody caps the DELETE body read by the guard.
+const maxGuardBody = 1 << 20
+
+// New builds a Server.
+func New(o Options) *Server {
+	if o.Log == nil {
+		o.Log = slog.Default()
+	}
+	if o.Metrics == nil {
+		o.Metrics = metrics.New()
+	}
+	s := &Server{o: o, urlBase: strings.TrimRight(o.Status.URLBase, "/")}
+	s.rp = &httputil.ReverseProxy{
+		Rewrite:        s.rewrite,
+		ModifyResponse: s.modifyResponse,
+		Transport:      o.Transport,
+		ErrorLog:       slog.NewLogLogger(o.Log.Handler(), slog.LevelWarn),
+	}
+	ac := o.AuthClient
+	if ac == nil {
+		ac = &http.Client{Timeout: 10 * time.Second, Transport: o.Transport}
+	}
+	s.auth = newAuthCache(o.Upstream, o.Shape.API, ac)
+	ttl := o.Guard.GrantTTL.Duration
+	if ttl == 0 {
+		ttl = 2 * time.Minute
+	}
+	s.grants = newGrantStore(ttl)
+	return s
+}
+
+func (s *Server) rewrite(pr *httputil.ProxyRequest) {
+	pr.SetURL(s.o.Upstream)
+	pr.SetXForwarded()
+	pr.Out.Host = pr.In.Host
+	pr.Out.Header.Del("X-Airrbag-Override")
+	if wantsHTML(pr.In) {
+		// Only gzip can be decoded for injection without extra dependencies.
+		pr.Out.Header.Set("Accept-Encoding", "gzip")
+	}
+}
+
+func wantsHTML(r *http.Request) bool {
+	if r.Method != http.MethodGet {
+		return false
+	}
+	if strings.Contains(r.URL.Path, "/api/") || strings.Contains(r.URL.Path, "/signalr") {
+		return false
+	}
+	return strings.Contains(r.Header.Get("Accept"), "text/html")
+}
+
+var bodyCloseRE = regexp.MustCompile(`(?i)</body\s*>`)
+
+func (s *Server) scriptTag() []byte {
+	base := s.urlBase + Prefix
+	return []byte(fmt.Sprintf(`<script src="%s/airrbag.js?v=%s" defer data-airrbag-base="%s" data-airrbag-app="%s"></script>`,
+		base, url.QueryEscape(s.o.Version), base, s.o.Shape.App))
+}
+
+// Inject inserts tag before the last </body>, or appends it.
+func Inject(html, tag []byte) []byte {
+	locs := bodyCloseRE.FindAllIndex(html, -1)
+	if len(locs) == 0 {
+		return append(append([]byte{}, html...), tag...)
+	}
+	i := locs[len(locs)-1][0]
+	out := make([]byte, 0, len(html)+len(tag))
+	out = append(out, html[:i]...)
+	out = append(out, tag...)
+	return append(out, html[i:]...)
+}
+
+func (s *Server) modifyResponse(resp *http.Response) error {
+	if resp.StatusCode != http.StatusOK || !strings.HasPrefix(resp.Header.Get("Content-Type"), "text/html") {
+		return nil
+	}
+	enc := strings.ToLower(resp.Header.Get("Content-Encoding"))
+	if enc != "" && enc != "gzip" && enc != "identity" {
+		return nil // cannot decode; leave the page untouched
+	}
+	raw, err := io.ReadAll(io.LimitReader(resp.Body, maxInjectBody+1))
+	if err != nil {
+		return err
+	}
+	if len(raw) > maxInjectBody {
+		resp.Body = struct {
+			io.Reader
+			io.Closer
+		}{io.MultiReader(bytes.NewReader(raw), resp.Body), resp.Body}
+		return nil
+	}
+	_ = resp.Body.Close()
+	html := raw
+	if enc == "gzip" {
+		zr, err := gzip.NewReader(bytes.NewReader(raw))
+		if err != nil {
+			return err
+		}
+		html, err = io.ReadAll(io.LimitReader(zr, maxInjectBody))
+		if err != nil {
+			return err
+		}
+	}
+	out := Inject(html, s.scriptTag())
+	resp.Body = io.NopCloser(bytes.NewReader(out))
+	resp.ContentLength = int64(len(out))
+	resp.Header.Set("Content-Length", strconv.Itoa(len(out)))
+	resp.Header.Del("Content-Encoding")
+	resp.Header.Del("ETag")
+	s.o.Metrics.Add("airrbag_html_injected_total", 1, "instance", s.o.Name)
+	return nil
+}
+
+// ownPath returns the part after /__airrbag if the request is for Airrbag.
+func (s *Server) ownPath(p string) (string, bool) {
+	for _, base := range []string{s.urlBase + Prefix, Prefix} {
+		if p == base {
+			return "/", true
+		}
+		if strings.HasPrefix(p, base+"/") {
+			return strings.TrimPrefix(p, base), true
+		}
+	}
+	return "", false
+}
+
+// ServeHTTP implements http.Handler.
+func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if rest, ok := s.ownPath(r.URL.Path); ok {
+		s.serveOwn(w, r, rest)
+		return
+	}
+	if r.Method == http.MethodDelete && s.o.Guard.GuardEnabled() {
+		if s.guard(w, r) {
+			return
+		}
+	}
+	s.rp.ServeHTTP(w, r)
+}
+
+func writeJSON(w http.ResponseWriter, code int, v any) {
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Cache-Control", "no-store")
+	w.WriteHeader(code)
+	_ = json.NewEncoder(w).Encode(v)
+}
+
+// guard returns true when it answered the request itself.
+func (s *Server) guard(w http.ResponseWriter, r *http.Request) bool {
+	body, err := io.ReadAll(io.LimitReader(r.Body, maxGuardBody+1))
+	if err != nil || len(body) > maxGuardBody {
+		writeJSON(w, http.StatusRequestEntityTooLarge, map[string]string{"error": "airrbag: request body too large"})
+		return true
+	}
+	r.Body = io.NopCloser(bytes.NewReader(body))
+	r.ContentLength = int64(len(body))
+
+	target, ok := ParseDelete(s.o.Shape, r.URL.Path, r.URL.Query(), body)
+	if !ok {
+		return false
+	}
+	q := r.URL.Query()
+	override := r.Header.Get("X-Airrbag-Override")
+	if override == "" {
+		override = q.Get("airrbagOverride")
+	}
+	if q.Has("airrbagOverride") {
+		q.Del("airrbagOverride")
+		r.URL.RawQuery = q.Encode()
+	}
+	key := grantKey(r.Method, r.URL, body)
+	if override == "" && s.grants.take(key) {
+		override = "confirmed in the Airrbag dialog"
+	}
+	if override != "" {
+		s.o.Log.Info("guard override", "instance", s.o.Name, "path", r.URL.Path, "reason", override)
+		s.o.Metrics.Add("airrbag_guard_overridden_total", 1, "instance", s.o.Name)
+		return false
+	}
+	// Unauthenticated requests are the *Arr's to reject; never compute or
+	// reveal verdicts for them.
+	if !s.auth.ok(r) {
+		return false
+	}
+	ctx, cancel := context.WithTimeout(r.Context(), 60*time.Second)
+	defer cancel()
+	fvs, err := s.targetVerdicts(ctx, target)
+	if err != nil {
+		if s.o.Guard.FailClosedEnabled() && !s.o.Guard.DryRun {
+			s.o.Metrics.Add("airrbag_guard_blocked_total", 1, "instance", s.o.Name, "reason", "error")
+			writeJSON(w, http.StatusServiceUnavailable, map[string]any{
+				"error":    "airrbag could not verify this delete: " + err.Error(),
+				"override": "retry after confirming in the Airrbag dialog, or send X-Airrbag-Override: <reason>",
+			})
+			return true
+		}
+		s.o.Log.Warn("guard evaluation failed; letting the request through", "err", err)
+		return false
+	}
+	var keep []engine.FileVerdict
+	for _, fv := range fvs {
+		if fv.Verdict == verdict.Keep {
+			keep = append(keep, fv)
+		}
+	}
+	if len(keep) == 0 {
+		return false
+	}
+	if s.o.Guard.DryRun {
+		s.o.Log.Warn("guard dry-run: would block delete", "instance", s.o.Name, "path", r.URL.Path, "keep", len(keep))
+		s.o.Metrics.Add("airrbag_guard_dryrun_total", 1, "instance", s.o.Name)
+		return false
+	}
+	s.o.Log.Warn("guard blocked delete", "instance", s.o.Name, "path", r.URL.Path, "keep", len(keep))
+	s.o.Metrics.Add("airrbag_guard_blocked_total", 1, "instance", s.o.Name, "reason", "keep")
+	writeJSON(w, http.StatusConflict, map[string]any{
+		"error":    "airrbag: this delete would break a private-tracker seed that is still owed",
+		"keep":     keep,
+		"override": "confirm in the Airrbag dialog, or repeat with header X-Airrbag-Override: <reason>",
+	})
+	return true
+}
+
+func (s *Server) targetVerdicts(ctx context.Context, t Target) ([]engine.FileVerdict, error) {
+	var out []engine.FileVerdict
+	if len(t.FileIDs) > 0 {
+		fvs, err := s.o.Engine.FilesByID(ctx, t.FileIDs)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, fvs...)
+	}
+	for _, pid := range t.ParentIDs {
+		fvs, err := s.o.Engine.ParentFiles(ctx, pid)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, fvs...)
+	}
+	for _, id := range t.SubIDs {
+		fvs, err := s.o.Engine.SubFiles(ctx, t.SubParam, id)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, fvs...)
+	}
+	return out, nil
+}
+
+// detailRoutes are the UI routes of a parent's detail page per app.
+var detailRoutes = regexp.MustCompile(`/(movie|series|artist|author)/([^/?#]+)`)
+
+func (s *Server) serveOwn(w http.ResponseWriter, r *http.Request, rest string) {
+	switch {
+	case rest == "/airrbag.js":
+		if len(s.o.Script) == 0 {
+			http.Error(w, "airrbag.js was not built into this binary (run make web)", http.StatusServiceUnavailable)
+			return
+		}
+		w.Header().Set("Content-Type", "text/javascript; charset=utf-8")
+		w.Header().Set("Cache-Control", "no-cache")
+		_, _ = w.Write(s.o.Script)
+	case rest == "/" || rest == "":
+		if !strings.HasSuffix(r.URL.Path, "/") {
+			http.Redirect(w, r, r.URL.Path+"/", http.StatusFound)
+			return
+		}
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.Header().Set("Cache-Control", "no-cache")
+		_, _ = w.Write(listsPage)
+	case rest == "/health":
+		s.health(w, r)
+	case rest == "/metrics":
+		s.o.Metrics.Handler().ServeHTTP(w, r)
+	case strings.HasPrefix(rest, "/api/"):
+		if !s.auth.ok(r) {
+			writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "sign in to the *Arr first"})
+			return
+		}
+		s.serveAPI(w, r, strings.TrimPrefix(rest, "/api"))
+	default:
+		http.NotFound(w, r)
+	}
+}
+
+func (s *Server) health(w http.ResponseWriter, r *http.Request) {
+	n, at, err := s.o.Engine.IndexStats()
+	h := map[string]any{
+		"status": "ok", "instance": s.o.Name, "app": s.o.Shape.App, "appVersion": s.o.Status.Version,
+		"airrbagVersion": s.o.Version, "indexedFiles": n, "guard": s.o.Guard.GuardEnabled(), "dryRun": s.o.Guard.DryRun,
+	}
+	if !at.IsZero() {
+		h["indexedAt"] = at
+	}
+	if err != nil {
+		h["indexError"] = err.Error()
+	}
+	if s.o.Health != nil {
+		h["clients"] = s.o.Health(r.Context())
+	}
+	writeJSON(w, http.StatusOK, h)
+}
+
+type checkRequest struct {
+	Method string `json:"method"`
+	URL    string `json:"url"`
+	Body   string `json:"body"`
+	Reason string `json:"reason"`
+}
+
+func (s *Server) parseCheck(r *http.Request) (checkRequest, *url.URL, error) {
+	var cr checkRequest
+	if err := json.NewDecoder(io.LimitReader(r.Body, maxGuardBody)).Decode(&cr); err != nil {
+		return cr, nil, err
+	}
+	u, err := url.Parse(cr.URL)
+	if err != nil {
+		return cr, nil, err
+	}
+	if cr.Method == "" {
+		cr.Method = http.MethodDelete
+	}
+	return cr, u, nil
+}
+
+func (s *Server) serveAPI(w http.ResponseWriter, r *http.Request, p string) {
+	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Minute)
+	defer cancel()
+	r = r.WithContext(ctx)
+	type route struct {
+		method string
+		h      func(http.ResponseWriter, *http.Request)
+	}
+	routes := map[string]route{
+		"/info":    {http.MethodGet, s.apiInfo},
+		"/resolve": {http.MethodGet, s.apiResolve},
+		"/files":   {http.MethodGet, s.apiFiles},
+		"/check":   {http.MethodPost, s.apiCheck},
+		"/grant":   {http.MethodPost, s.apiGrant},
+		"/lists":   {http.MethodGet, s.apiLists},
+	}
+	rt, ok := routes[p]
+	if !ok || r.Method != rt.method {
+		writeJSON(w, http.StatusNotFound, map[string]string{"error": "unknown endpoint"})
+		return
+	}
+	rt.h(w, r)
+}
+
+func (s *Server) apiInfo(w http.ResponseWriter, _ *http.Request) {
+	writeJSON(w, http.StatusOK, map[string]any{"app": s.o.Shape.App, "parent": s.o.Shape.Parent,
+		"guard": s.o.Guard.GuardEnabled(), "dryRun": s.o.Guard.DryRun, "version": s.o.Version})
+}
+
+func (s *Server) apiResolve(w http.ResponseWriter, r *http.Request) {
+	m := detailRoutes.FindStringSubmatch(r.URL.Query().Get("path"))
+	if m == nil || m[1] != s.o.Shape.Parent {
+		writeJSON(w, http.StatusOK, map[string]any{"parentId": 0})
+		return
+	}
+	slug, _ := url.PathUnescape(m[2])
+	id, ok, err := s.o.Engine.Resolve(r.Context(), slug)
+	if err != nil {
+		writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
+		return
+	}
+	if !ok {
+		id = 0
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"parentId": id})
+}
+
+func (s *Server) apiFiles(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.Atoi(r.URL.Query().Get("parentId"))
+	if err != nil || id <= 0 {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "parentId required"})
+		return
+	}
+	fvs, err := s.o.Engine.ParentFiles(r.Context(), id)
+	if err != nil {
+		writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"app": s.o.Shape.App, "files": fvs})
+}
+
+func (s *Server) apiCheck(w http.ResponseWriter, r *http.Request) {
+	cr, u, err := s.parseCheck(r)
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "bad request"})
+		return
+	}
+	t, ok := ParseDelete(s.o.Shape, u.Path, u.Query(), []byte(cr.Body))
+	if !ok {
+		writeJSON(w, http.StatusOK, map[string]any{"deletesFiles": false, "files": []engine.FileVerdict{}})
+		return
+	}
+	fvs, err := s.targetVerdicts(r.Context(), t)
+	if err != nil {
+		writeJSON(w, http.StatusOK, map[string]any{"deletesFiles": true, "error": err.Error(), "failClosed": s.o.Guard.FailClosedEnabled()})
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"deletesFiles": true, "files": fvs})
+}
+
+func (s *Server) apiGrant(w http.ResponseWriter, r *http.Request) {
+	cr, u, err := s.parseCheck(r)
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "bad request"})
+		return
+	}
+	s.grants.put(grantKey(cr.Method, u, []byte(cr.Body)))
+	s.o.Log.Info("guard grant issued", "instance", s.o.Name, "path", u.Path, "reason", cr.Reason)
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true, "ttlSeconds": int(s.grants.ttl / time.Second)})
+}
+
+func (s *Server) apiLists(w http.ResponseWriter, r *http.Request) {
+	l, err := s.o.Engine.Lists(r.Context())
+	if err != nil {
+		writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
+		return
+	}
+	writeJSON(w, http.StatusOK, l)
+}

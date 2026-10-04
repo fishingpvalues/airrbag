@@ -1,0 +1,22 @@
+# Airrbag in front of Radarr and Sonarr.
+# Browse to http://<host>:17878 (Radarr) and http://<host>:18989 (Sonarr)
+# instead of the apps' own ports.
+services:
+  airrbag:
+    image: ghcr.io/fishingpvalues/airrbag:latest
+    container_name: airrbag
+    restart: unless-stopped
+    read_only: true
+    environment:
+      RADARR_API_KEY: ${RADARR_API_KEY}
+      SONARR_API_KEY: ${SONARR_API_KEY}
+      QBITTORRENT_PASSWORD: ${QBITTORRENT_PASSWORD}
+      SABNZBD_API_KEY: ${SABNZBD_API_KEY}
+    volumes:
+      - ./airrbag.yml:/config/airrbag.yml:ro
+      # Same disks the *Arr and the torrent client use, read-only.
+      - /srv/media:/media:ro
+    ports:
+      # Bind to localhost or your VPN/tailnet address, never the internet.
+      - "127.0.0.1:17878:17878"
+      - "127.0.0.1:18989:18989"

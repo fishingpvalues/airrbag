@@ -1,0 +1,637 @@
+[
+ {
+  "movieId": 111,
+  "sourceTitle": "Title 008",
+  "languages": [
+   {
+    "id": 8,
+    "name": "Title 009"
+   }
+  ],
+  "quality": {
+   "quality": {
+    "id": 3,
+    "name": "Title 010",
+    "source": "webdl",
+    "resolution": 1080,
+    "modifier": "none"
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [
+   {
+    "id": 85,
+    "name": "Title 011"
+   },
+   {
+    "id": 124,
+    "name": "Title 012"
+   },
+   {
+    "id": 62,
+    "name": "Title 013"
+   },
+   {
+    "id": 28,
+    "name": "Title 014"
+   },
+   {
+    "id": 72,
+    "name": "Title 015"
+   }
+  ],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-10-02T06:24:48Z",
+  "downloadId": "3C52E42EF6BD3B9892B2FB7D4CB15E59E92DF037",
+  "eventType": "downloadFolderImported",
+  "data": {
+   "fileId": "830",
+   "droppedPath": "/storage2/downloads/torrents/movies/Title.008.mkv",
+   "importedPath": "/storage2/media/movies/Title.016/Title.017.mkv",
+   "downloadClient": "qBittorrent",
+   "downloadClientName": "qBittorrent (Seed)",
+   "releaseGroup": "Title 018",
+   "customFormatScore": "0",
+   "size": "4988097745",
+   "indexerFlags": "0"
+  },
+  "id": 1085
+ },
+ {
+  "movieId": 111,
+  "sourceTitle": "Title 019",
+  "languages": [
+   {
+    "id": 8,
+    "name": "Title 009"
+   }
+  ],
+  "quality": {
+   "quality": {
+    "id": 3,
+    "name": "Title 010",
+    "source": "webdl",
+    "resolution": 1080,
+    "modifier": "none"
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [
+   {
+    "id": 85,
+    "name": "Title 011"
+   },
+   {
+    "id": 124,
+    "name": "Title 012"
+   },
+   {
+    "id": 62,
+    "name": "Title 013"
+   },
+   {
+    "id": 28,
+    "name": "Title 014"
+   },
+   {
+    "id": 72,
+    "name": "Title 015"
+   }
+  ],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-10-02T06:17:25Z",
+  "downloadId": "3C52E42EF6BD3B9892B2FB7D4CB15E59E92DF037",
+  "eventType": "grabbed",
+  "data": {
+   "indexer": "Indexer1 (Prowlarr)",
+   "nzbInfoUrl": "REDACTED",
+   "releaseGroup": "Title 018",
+   "age": "0",
+   "ageHours": "0.6579354198888889",
+   "ageMinutes": "39.47620237",
+   "publishedDate": "2026-10-02T05:37:57Z",
+   "downloadClient": "qBittorrent",
+   "downloadClientName": "qBittorrent (Seed)",
+   "size": "4988097745",
+   "downloadUrl": "REDACTED",
+   "guid": "REDACTED",
+   "tmdbId": "0",
+   "imdbId": "0",
+   "protocol": "2",
+   "customFormatScore": "0",
+   "movieMatchType": "Id",
+   "releaseSource": "Rss",
+   "indexerFlags": "0",
+   "indexerId": "11",
+   "torrentInfoHash": "3C52E42EF6BD3B9892B2FB7D4CB15E59E92DF037"
+  },
+  "id": 1084
+ },
+ {
+  "movieId": 111,
+  "sourceTitle": "Title 020",
+  "languages": [
+   {
+    "id": 8,
+    "name": "Title 009"
+   }
+  ],
+  "quality": {
+   "quality": {
+    "id": 19,
+    "name": "Title 021",
+    "source": "bluray",
+    "resolution": 2160,
+    "modifier": "none"
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [
+   {
+    "id": 87,
+    "name": "Title 022"
+   },
+   {
+    "id": 62,
+    "name": "Title 013"
+   },
+   {
+    "id": 39,
+    "name": "Title 023"
+   },
+   {
+    "id": 72,
+    "name": "Title 015"
+   },
+   {
+    "id": 59,
+    "name": "Title 024"
+   }
+  ],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-08-13T07:42:19Z",
+  "downloadId": "26E5CA29455B226204C8697E3F0EC145891C1D89",
+  "eventType": "grabbed",
+  "data": {
+   "indexer": "Indexer2 (Prowlarr)",
+   "nzbInfoUrl": "REDACTED",
+   "releaseGroup": null,
+   "age": "2143",
+   "ageHours": "51449.517401636665",
+   "ageMinutes": "3086971.0440982617",
+   "publishedDate": "2020-09-29T14:11:17Z",
+   "downloadClient": "qBittorrent",
+   "downloadClientName": "qBittorrent (Seed)",
+   "size": "30719994163",
+   "downloadUrl": "REDACTED",
+   "guid": "REDACTED",
+   "tmdbId": "0",
+   "imdbId": "0",
+   "protocol": "2",
+   "customFormatScore": "0",
+   "movieMatchType": "Title",
+   "releaseSource": "UserInvokedSearch",
+   "indexerFlags": "G_Freeleech",
+   "indexerId": "4",
+   "torrentInfoHash": "26E5CA29455B226204C8697E3F0EC145891C1D89"
+  },
+  "id": 866
+ },
+ {
+  "movieId": 111,
+  "sourceTitle": "Title 025",
+  "languages": [
+   {
+    "id": 8,
+    "name": "Title 009"
+   }
+  ],
+  "quality": {
+   "quality": {
+    "id": 19,
+    "name": "Title 021",
+    "source": "bluray",
+    "resolution": 2160,
+    "modifier": "none"
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [
+   {
+    "id": 131,
+    "name": "Title 026"
+   },
+   {
+    "id": 87,
+    "name": "Title 022"
+   },
+   {
+    "id": 62,
+    "name": "Title 013"
+   },
+   {
+    "id": 39,
+    "name": "Title 023"
+   },
+   {
+    "id": 72,
+    "name": "Title 015"
+   },
+   {
+    "id": 59,
+    "name": "Title 024"
+   }
+  ],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-08-13T07:35:00Z",
+  "downloadId": "8F8B808D782CC65B8236F2F80F864A81721776BB",
+  "eventType": "downloadFailed",
+  "data": {
+   "downloadClient": "qBittorrent",
+   "downloadClientName": "qBittorrent (Seed)",
+   "message": "Title 027",
+   "releaseGroup": null,
+   "size": "25267704670",
+   "indexer": "Indexer2 (Prowlarr)"
+  },
+  "id": 865
+ },
+ {
+  "movieId": 111,
+  "sourceTitle": "Title 025",
+  "languages": [
+   {
+    "id": 8,
+    "name": "Title 009"
+   }
+  ],
+  "quality": {
+   "quality": {
+    "id": 19,
+    "name": "Title 021",
+    "source": "bluray",
+    "resolution": 2160,
+    "modifier": "none"
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [
+   {
+    "id": 131,
+    "name": "Title 026"
+   },
+   {
+    "id": 87,
+    "name": "Title 022"
+   },
+   {
+    "id": 62,
+    "name": "Title 013"
+   },
+   {
+    "id": 39,
+    "name": "Title 023"
+   },
+   {
+    "id": 72,
+    "name": "Title 015"
+   },
+   {
+    "id": 59,
+    "name": "Title 024"
+   }
+  ],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-08-11T21:47:11Z",
+  "downloadId": "8F8B808D782CC65B8236F2F80F864A81721776BB",
+  "eventType": "grabbed",
+  "data": {
+   "indexer": "Indexer2 (Prowlarr)",
+   "nzbInfoUrl": "REDACTED",
+   "releaseGroup": null,
+   "age": "2161",
+   "ageHours": "51869.06706797953",
+   "ageMinutes": "3112144.0240788665",
+   "publishedDate": "2020-09-10T16:43:10Z",
+   "downloadClient": "qBittorrent",
+   "downloadClientName": "qBittorrent (Seed)",
+   "size": "25267704670",
+   "downloadUrl": "REDACTED",
+   "guid": "REDACTED",
+   "tmdbId": "0",
+   "imdbId": "0",
+   "protocol": "2",
+   "customFormatScore": "0",
+   "movieMatchType": "Title",
+   "releaseSource": "UserInvokedSearch",
+   "indexerFlags": "G_Freeleech",
+   "indexerId": "4",
+   "torrentInfoHash": "8F8B808D782CC65B8236F2F80F864A81721776BB"
+  },
+  "id": 741
+ },
+ {
+  "movieId": 111,
+  "sourceTitle": "Title 028",
+  "languages": [
+   {
+    "id": 8,
+    "name": "Title 009"
+   },
+   {
+    "id": 1,
+    "name": "Title 029"
+   }
+  ],
+  "quality": {
+   "quality": {
+    "id": 30,
+    "name": "Title 030",
+    "source": "bluray",
+    "resolution": 1080,
+    "modifier": "remux"
+   },
+   "revision": {
+    "version": 2,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [
+   {
+    "id": 85,
+    "name": "Title 011"
+   },
+   {
+    "id": 51,
+    "name": "Title 031"
+   },
+   {
+    "id": 60,
+    "name": "Title 032"
+   },
+   {
+    "id": 63,
+    "name": "Title 033"
+   },
+   {
+    "id": 7,
+    "name": "Title 034"
+   },
+   {
+    "id": 115,
+    "name": "Title 035"
+   },
+   {
+    "id": 107,
+    "name": "Title 036"
+   }
+  ],
+  "customFormatScore": 977,
+  "qualityCutoffNotMet": false,
+  "date": "2026-08-11T14:17:15Z",
+  "eventType": "movieFileDeleted",
+  "data": {
+   "reason": "Manual",
+   "releaseGroup": "Title 037",
+   "size": "22180726993",
+   "indexerFlags": "0"
+  },
+  "id": 529
+ },
+ {
+  "movieId": 111,
+  "sourceTitle": "Title 038",
+  "languages": [
+   {
+    "id": 8,
+    "name": "Title 009"
+   },
+   {
+    "id": 1,
+    "name": "Title 029"
+   }
+  ],
+  "quality": {
+   "quality": {
+    "id": 30,
+    "name": "Title 030",
+    "source": "bluray",
+    "resolution": 1080,
+    "modifier": "remux"
+   },
+   "revision": {
+    "version": 2,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [
+   {
+    "id": 85,
+    "name": "Title 011"
+   },
+   {
+    "id": 51,
+    "name": "Title 031"
+   },
+   {
+    "id": 60,
+    "name": "Title 032"
+   },
+   {
+    "id": 63,
+    "name": "Title 033"
+   },
+   {
+    "id": 7,
+    "name": "Title 034"
+   },
+   {
+    "id": 115,
+    "name": "Title 035"
+   },
+   {
+    "id": 107,
+    "name": "Title 036"
+   }
+  ],
+  "customFormatScore": 977,
+  "qualityCutoffNotMet": false,
+  "date": "2026-07-17T20:31:01Z",
+  "downloadId": "SABnzbd_nzo_4c6553770603",
+  "eventType": "downloadFolderImported",
+  "data": {
+   "fileId": "598",
+   "droppedPath": "/storage2/downloads/usenet/movies/Title.038/Title.039.mkv",
+   "importedPath": "/storage2/media/movies/Title.016/Title.040.mkv",
+   "downloadClient": "SABnzbd",
+   "downloadClientName": "SABnzbd",
+   "releaseGroup": "Title 037",
+   "customFormatScore": "10001",
+   "size": "22305899661",
+   "indexerFlags": "0"
+  },
+  "id": 411
+ },
+ {
+  "movieId": 111,
+  "sourceTitle": "Title 041",
+  "languages": [
+   {
+    "id": 1,
+    "name": "Title 029"
+   }
+  ],
+  "quality": {
+   "quality": {
+    "id": 7,
+    "name": "Title 042",
+    "source": "bluray",
+    "resolution": 1080,
+    "modifier": "none"
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [
+   {
+    "id": 85,
+    "name": "Title 011"
+   },
+   {
+    "id": 60,
+    "name": "Title 032"
+   },
+   {
+    "id": 39,
+    "name": "Title 023"
+   }
+  ],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-07-17T20:31:01Z",
+  "eventType": "movieFileDeleted",
+  "data": {
+   "reason": "Upgrade",
+   "releaseGroup": null,
+   "size": "1913527124",
+   "indexerFlags": "0"
+  },
+  "id": 410
+ },
+ {
+  "movieId": 111,
+  "sourceTitle": "Title 038",
+  "languages": [
+   {
+    "id": 8,
+    "name": "Title 009"
+   }
+  ],
+  "quality": {
+   "quality": {
+    "id": 30,
+    "name": "Title 030",
+    "source": "bluray",
+    "resolution": 1080,
+    "modifier": "remux"
+   },
+   "revision": {
+    "version": 2,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [
+   {
+    "id": 85,
+    "name": "Title 011"
+   },
+   {
+    "id": 51,
+    "name": "Title 031"
+   },
+   {
+    "id": 62,
+    "name": "Title 013"
+   },
+   {
+    "id": 72,
+    "name": "Title 015"
+   },
+   {
+    "id": 63,
+    "name": "Title 033"
+   },
+   {
+    "id": 7,
+    "name": "Title 034"
+   },
+   {
+    "id": 115,
+    "name": "Title 035"
+   },
+   {
+    "id": 107,
+    "name": "Title 036"
+   }
+  ],
+  "customFormatScore": 977,
+  "qualityCutoffNotMet": false,
+  "date": "2026-07-17T20:09:23Z",
+  "downloadId": "SABnzbd_nzo_4c6553770603",
+  "eventType": "grabbed",
+  "data": {
+   "indexer": "Indexer3 (Prowlarr)",
+   "nzbInfoUrl": "REDACTED",
+   "releaseGroup": "Title 037",
+   "age": "0",
+   "ageHours": "0.14200058433333335",
+   "ageMinutes": "8.520043785",
+   "publishedDate": "2026-07-17T20:00:52Z",
+   "downloadClient": "SABnzbd",
+   "downloadClientName": "SABnzbd",
+   "size": "25284851485",
+   "downloadUrl": "REDACTED",
+   "guid": "REDACTED",
+   "tmdbId": "0",
+   "imdbId": "0",
+   "protocol": "1",
+   "customFormatScore": "1",
+   "movieMatchType": "Id",
+   "releaseSource": "Rss",
+   "indexerFlags": "0",
+   "indexerId": "17"
+  },
+  "id": 409
+ }
+]

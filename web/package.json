@@ -1,0 +1,13 @@
+{
+  "name": "airrbag-web",
+  "private": true,
+  "description": "Browser script Airrbag injects into the *Arr UI",
+  "scripts": {
+    "build": "esbuild src/main.ts --bundle --minify --format=iife --target=es2019 --legal-comments=none --outfile=../internal/webassets/dist/airrbag.js",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2",
+    "typescript": "7.0.2"
+  }
+}

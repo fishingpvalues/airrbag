@@ -1,0 +1,10 @@
+.git
+.github
+**/node_modules
+*.md
+!internal/webassets/dist/README.md
+docs
+testdata
+coverage.*
+/airrbag
+dist/

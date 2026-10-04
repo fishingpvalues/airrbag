@@ -1,0 +1,1316 @@
+[
+ {
+  "albumId": 28017,
+  "artistId": 610,
+  "trackId": 0,
+  "sourceTitle": "Title 056",
+  "quality": {
+   "quality": {
+    "id": 6,
+    "name": "Title 003"
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-10-02T20:01:55Z",
+  "downloadId": "eed45590-5cdd-4c33-9ded-0d0798d44ead",
+  "eventType": "downloadImported",
+  "data": {
+   "releaseGroup": null
+  },
+  "id": 46153
+ },
+ {
+  "albumId": 2134,
+  "artistId": 610,
+  "trackId": 44652,
+  "sourceTitle": "Title 057",
+  "quality": {
+   "quality": {
+    "id": 21,
+    "name": "Title 058"
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-10-02T20:01:53Z",
+  "downloadId": "eed45590-5cdd-4c33-9ded-0d0798d44ead",
+  "eventType": "trackFileImported",
+  "data": {
+   "fileId": "949769",
+   "droppedPath": "/downloads/usenet/music/Title.056/Title.059/Title.057.flac",
+   "importedPath": "/music/Title.001/Title.057.flac",
+   "downloadClient": "SABnzbd",
+   "releaseGroup": null,
+   "size": "61760384",
+   "indexerFlags": "0"
+  },
+  "id": 46152
+ },
+ {
+  "albumId": 2134,
+  "artistId": 610,
+  "trackId": 44651,
+  "sourceTitle": "Title 060",
+  "quality": {
+   "quality": {
+    "id": 21,
+    "name": "Title 058"
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-10-02T20:01:53Z",
+  "downloadId": "eed45590-5cdd-4c33-9ded-0d0798d44ead",
+  "eventType": "trackFileImported",
+  "data": {
+   "fileId": "949768",
+   "droppedPath": "/downloads/usenet/music/Title.056/Title.059/Title.060.flac",
+   "importedPath": "/music/Title.001/Title.060.flac",
+   "downloadClient": "SABnzbd",
+   "releaseGroup": null,
+   "size": "85804272",
+   "indexerFlags": "0"
+  },
+  "id": 46151
+ },
+ {
+  "albumId": 27979,
+  "artistId": 610,
+  "trackId": 579519,
+  "sourceTitle": "Title 061",
+  "quality": {
+   "quality": {
+    "id": 21,
+    "name": "Title 058"
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-10-02T20:01:53Z",
+  "downloadId": "eed45590-5cdd-4c33-9ded-0d0798d44ead",
+  "eventType": "trackFileImported",
+  "data": {
+   "fileId": "949767",
+   "droppedPath": "/downloads/usenet/music/Title.056/Title.062/Title.061.flac",
+   "importedPath": "/music/Title.001/Title.061.flac",
+   "downloadClient": "SABnzbd",
+   "releaseGroup": null,
+   "size": "94676000",
+   "indexerFlags": "0"
+  },
+  "id": 46150
+ },
+ {
+  "albumId": 2134,
+  "artistId": 610,
+  "trackId": 44650,
+  "sourceTitle": "Title 063",
+  "quality": {
+   "quality": {
+    "id": 21,
+    "name": "Title 058"
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-10-02T20:01:53Z",
+  "downloadId": "eed45590-5cdd-4c33-9ded-0d0798d44ead",
+  "eventType": "trackFileImported",
+  "data": {
+   "fileId": "949766",
+   "droppedPath": "/downloads/usenet/music/Title.056/Title.059/Title.063.flac",
+   "importedPath": "/music/Title.001/Title.063.flac",
+   "downloadClient": "SABnzbd",
+   "releaseGroup": null,
+   "size": "123814753",
+   "indexerFlags": "0"
+  },
+  "id": 46149
+ },
+ {
+  "albumId": 27979,
+  "artistId": 610,
+  "trackId": 579518,
+  "sourceTitle": "Title 064",
+  "quality": {
+   "quality": {
+    "id": 21,
+    "name": "Title 058"
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-10-02T20:01:53Z",
+  "downloadId": "eed45590-5cdd-4c33-9ded-0d0798d44ead",
+  "eventType": "trackFileImported",
+  "data": {
+   "fileId": "949765",
+   "droppedPath": "/downloads/usenet/music/Title.056/Title.062/Title.064.flac",
+   "importedPath": "/music/Title.001/Title.064.flac",
+   "downloadClient": "SABnzbd",
+   "releaseGroup": null,
+   "size": "130904273",
+   "indexerFlags": "0"
+  },
+  "id": 46148
+ },
+ {
+  "albumId": 28069,
+  "artistId": 610,
+  "trackId": 585287,
+  "sourceTitle": "Title 065",
+  "quality": {
+   "quality": {
+    "id": 21,
+    "name": "Title 058"
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-10-02T20:01:53Z",
+  "downloadId": "eed45590-5cdd-4c33-9ded-0d0798d44ead",
+  "eventType": "trackFileImported",
+  "data": {
+   "fileId": "949764",
+   "droppedPath": "/downloads/usenet/music/Title.056/Title.066/Title.065.flac",
+   "importedPath": "/music/Title.001/Title.065.flac",
+   "downloadClient": "SABnzbd",
+   "releaseGroup": null,
+   "size": "154249854",
+   "indexerFlags": "0"
+  },
+  "id": 46147
+ },
+ {
+  "albumId": 27908,
+  "artistId": 610,
+  "trackId": 576177,
+  "sourceTitle": "Title 067",
+  "quality": {
+   "quality": {
+    "id": 21,
+    "name": "Title 058"
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-10-02T20:01:53Z",
+  "downloadId": "eed45590-5cdd-4c33-9ded-0d0798d44ead",
+  "eventType": "trackFileImported",
+  "data": {
+   "fileId": "949763",
+   "droppedPath": "/downloads/usenet/music/Title.056/Title.068/Title.067.flac",
+   "importedPath": "/music/Title.001/Title.067.flac",
+   "downloadClient": "SABnzbd",
+   "releaseGroup": null,
+   "size": "158799502",
+   "indexerFlags": "0"
+  },
+  "id": 46146
+ },
+ {
+  "albumId": 27979,
+  "artistId": 610,
+  "trackId": 579517,
+  "sourceTitle": "Title 069",
+  "quality": {
+   "quality": {
+    "id": 21,
+    "name": "Title 058"
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-10-02T20:01:53Z",
+  "downloadId": "eed45590-5cdd-4c33-9ded-0d0798d44ead",
+  "eventType": "trackFileImported",
+  "data": {
+   "fileId": "949762",
+   "droppedPath": "/downloads/usenet/music/Title.056/Title.062/Title.069.flac",
+   "importedPath": "/music/Title.001/Title.069.flac",
+   "downloadClient": "SABnzbd",
+   "releaseGroup": null,
+   "size": "97164661",
+   "indexerFlags": "0"
+  },
+  "id": 46145
+ },
+ {
+  "albumId": 2134,
+  "artistId": 610,
+  "trackId": 44649,
+  "sourceTitle": "Title 070",
+  "quality": {
+   "quality": {
+    "id": 21,
+    "name": "Title 058"
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-10-02T20:01:53Z",
+  "downloadId": "eed45590-5cdd-4c33-9ded-0d0798d44ead",
+  "eventType": "trackFileImported",
+  "data": {
+   "fileId": "949761",
+   "droppedPath": "/downloads/usenet/music/Title.056/Title.059/Title.070.flac",
+   "importedPath": "/music/Title.001/Title.070.flac",
+   "downloadClient": "SABnzbd",
+   "releaseGroup": null,
+   "size": "101047747",
+   "indexerFlags": "0"
+  },
+  "id": 46144
+ },
+ {
+  "albumId": 28069,
+  "artistId": 610,
+  "trackId": 585286,
+  "sourceTitle": "Title 071",
+  "quality": {
+   "quality": {
+    "id": 21,
+    "name": "Title 058"
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-10-02T20:01:53Z",
+  "downloadId": "eed45590-5cdd-4c33-9ded-0d0798d44ead",
+  "eventType": "trackFileImported",
+  "data": {
+   "fileId": "949760",
+   "droppedPath": "/downloads/usenet/music/Title.056/Title.066/Title.071.flac",
+   "importedPath": "/music/Title.001/Title.071.flac",
+   "downloadClient": "SABnzbd",
+   "releaseGroup": null,
+   "size": "179634699",
+   "indexerFlags": "0"
+  },
+  "id": 46143
+ },
+ {
+  "albumId": 27908,
+  "artistId": 610,
+  "trackId": 576176,
+  "sourceTitle": "Title 072",
+  "quality": {
+   "quality": {
+    "id": 21,
+    "name": "Title 058"
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-10-02T20:01:53Z",
+  "downloadId": "eed45590-5cdd-4c33-9ded-0d0798d44ead",
+  "eventType": "trackFileImported",
+  "data": {
+   "fileId": "949759",
+   "droppedPath": "/downloads/usenet/music/Title.056/Title.068/Title.072.flac",
+   "importedPath": "/music/Title.001/Title.072.flac",
+   "downloadClient": "SABnzbd",
+   "releaseGroup": null,
+   "size": "187866649",
+   "indexerFlags": "0"
+  },
+  "id": 46142
+ },
+ {
+  "albumId": 28008,
+  "artistId": 610,
+  "trackId": 581286,
+  "sourceTitle": "Title 073",
+  "quality": {
+   "quality": {
+    "id": 21,
+    "name": "Title 058"
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-10-02T20:01:53Z",
+  "downloadId": "eed45590-5cdd-4c33-9ded-0d0798d44ead",
+  "eventType": "trackFileImported",
+  "data": {
+   "fileId": "949758",
+   "droppedPath": "/downloads/usenet/music/Title.056/Title.074/Title.073.flac",
+   "importedPath": "/music/Title.001/Title.073.flac",
+   "downloadClient": "SABnzbd",
+   "releaseGroup": null,
+   "size": "85778483",
+   "indexerFlags": "0"
+  },
+  "id": 46141
+ },
+ {
+  "albumId": 2134,
+  "artistId": 610,
+  "trackId": 44648,
+  "sourceTitle": "Title 075",
+  "quality": {
+   "quality": {
+    "id": 21,
+    "name": "Title 058"
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-10-02T20:01:53Z",
+  "downloadId": "eed45590-5cdd-4c33-9ded-0d0798d44ead",
+  "eventType": "trackFileImported",
+  "data": {
+   "fileId": "949757",
+   "droppedPath": "/downloads/usenet/music/Title.056/Title.059/Title.075.flac",
+   "importedPath": "/music/Title.001/Title.075.flac",
+   "downloadClient": "SABnzbd",
+   "releaseGroup": null,
+   "size": "107230768",
+   "indexerFlags": "0"
+  },
+  "id": 46140
+ },
+ {
+  "albumId": 27979,
+  "artistId": 610,
+  "trackId": 579516,
+  "sourceTitle": "Title 076",
+  "quality": {
+   "quality": {
+    "id": 21,
+    "name": "Title 058"
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-10-02T20:01:53Z",
+  "downloadId": "eed45590-5cdd-4c33-9ded-0d0798d44ead",
+  "eventType": "trackFileImported",
+  "data": {
+   "fileId": "949756",
+   "droppedPath": "/downloads/usenet/music/Title.056/Title.062/Title.076.flac",
+   "importedPath": "/music/Title.001/Title.076.flac",
+   "downloadClient": "SABnzbd",
+   "releaseGroup": null,
+   "size": "112881880",
+   "indexerFlags": "0"
+  },
+  "id": 46139
+ },
+ {
+  "albumId": 27908,
+  "artistId": 610,
+  "trackId": 576175,
+  "sourceTitle": "Title 077",
+  "quality": {
+   "quality": {
+    "id": 21,
+    "name": "Title 058"
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-10-02T20:01:53Z",
+  "downloadId": "eed45590-5cdd-4c33-9ded-0d0798d44ead",
+  "eventType": "trackFileImported",
+  "data": {
+   "fileId": "949755",
+   "droppedPath": "/downloads/usenet/music/Title.056/Title.068/Title.077.flac",
+   "importedPath": "/music/Title.001/Title.077.flac",
+   "downloadClient": "SABnzbd",
+   "releaseGroup": null,
+   "size": "142843641",
+   "indexerFlags": "0"
+  },
+  "id": 46138
+ },
+ {
+  "albumId": 28069,
+  "artistId": 610,
+  "trackId": 585285,
+  "sourceTitle": "Title 078",
+  "quality": {
+   "quality": {
+    "id": 21,
+    "name": "Title 058"
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-10-02T20:01:53Z",
+  "downloadId": "eed45590-5cdd-4c33-9ded-0d0798d44ead",
+  "eventType": "trackFileImported",
+  "data": {
+   "fileId": "949754",
+   "droppedPath": "/downloads/usenet/music/Title.056/Title.066/Title.078.flac",
+   "importedPath": "/music/Title.001/Title.078.flac",
+   "downloadClient": "SABnzbd",
+   "releaseGroup": null,
+   "size": "162283212",
+   "indexerFlags": "0"
+  },
+  "id": 46137
+ },
+ {
+  "albumId": 2134,
+  "artistId": 610,
+  "trackId": 44647,
+  "sourceTitle": "Title 079",
+  "quality": {
+   "quality": {
+    "id": 21,
+    "name": "Title 058"
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-10-02T20:01:53Z",
+  "downloadId": "eed45590-5cdd-4c33-9ded-0d0798d44ead",
+  "eventType": "trackFileImported",
+  "data": {
+   "fileId": "949753",
+   "droppedPath": "/downloads/usenet/music/Title.056/Title.059/Title.079.flac",
+   "importedPath": "/music/Title.001/Title.079.flac",
+   "downloadClient": "SABnzbd",
+   "releaseGroup": null,
+   "size": "96819719",
+   "indexerFlags": "0"
+  },
+  "id": 46136
+ },
+ {
+  "albumId": 27979,
+  "artistId": 610,
+  "trackId": 579515,
+  "sourceTitle": "Title 080",
+  "quality": {
+   "quality": {
+    "id": 21,
+    "name": "Title 058"
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-10-02T20:01:53Z",
+  "downloadId": "eed45590-5cdd-4c33-9ded-0d0798d44ead",
+  "eventType": "trackFileImported",
+  "data": {
+   "fileId": "949752",
+   "droppedPath": "/downloads/usenet/music/Title.056/Title.062/Title.080.flac",
+   "importedPath": "/music/Title.001/Title.080.flac",
+   "downloadClient": "SABnzbd",
+   "releaseGroup": null,
+   "size": "100781167",
+   "indexerFlags": "0"
+  },
+  "id": 46135
+ },
+ {
+  "albumId": 28008,
+  "artistId": 610,
+  "trackId": 581285,
+  "sourceTitle": "Title 081",
+  "quality": {
+   "quality": {
+    "id": 21,
+    "name": "Title 058"
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-10-02T20:01:53Z",
+  "downloadId": "eed45590-5cdd-4c33-9ded-0d0798d44ead",
+  "eventType": "trackFileImported",
+  "data": {
+   "fileId": "949751",
+   "droppedPath": "/downloads/usenet/music/Title.056/Title.074/Title.081.flac",
+   "importedPath": "/music/Title.001/Title.081.flac",
+   "downloadClient": "SABnzbd",
+   "releaseGroup": null,
+   "size": "123876445",
+   "indexerFlags": "0"
+  },
+  "id": 46134
+ },
+ {
+  "albumId": 28069,
+  "artistId": 610,
+  "trackId": 585284,
+  "sourceTitle": "Title 082",
+  "quality": {
+   "quality": {
+    "id": 21,
+    "name": "Title 058"
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-10-02T20:01:53Z",
+  "downloadId": "eed45590-5cdd-4c33-9ded-0d0798d44ead",
+  "eventType": "trackFileImported",
+  "data": {
+   "fileId": "949750",
+   "droppedPath": "/downloads/usenet/music/Title.056/Title.066/Title.082.flac",
+   "importedPath": "/music/Title.001/Title.082.flac",
+   "downloadClient": "SABnzbd",
+   "releaseGroup": null,
+   "size": "164361958",
+   "indexerFlags": "0"
+  },
+  "id": 46133
+ },
+ {
+  "albumId": 27908,
+  "artistId": 610,
+  "trackId": 576174,
+  "sourceTitle": "Title 083",
+  "quality": {
+   "quality": {
+    "id": 21,
+    "name": "Title 058"
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-10-02T20:01:53Z",
+  "downloadId": "eed45590-5cdd-4c33-9ded-0d0798d44ead",
+  "eventType": "trackFileImported",
+  "data": {
+   "fileId": "949749",
+   "droppedPath": "/downloads/usenet/music/Title.056/Title.068/Title.083.flac",
+   "importedPath": "/music/Title.001/Title.083.flac",
+   "downloadClient": "SABnzbd",
+   "releaseGroup": null,
+   "size": "189898822",
+   "indexerFlags": "0"
+  },
+  "id": 46132
+ },
+ {
+  "albumId": 2134,
+  "artistId": 610,
+  "trackId": 44646,
+  "sourceTitle": "Title 084",
+  "quality": {
+   "quality": {
+    "id": 21,
+    "name": "Title 058"
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-10-02T20:01:53Z",
+  "downloadId": "eed45590-5cdd-4c33-9ded-0d0798d44ead",
+  "eventType": "trackFileImported",
+  "data": {
+   "fileId": "949748",
+   "droppedPath": "/downloads/usenet/music/Title.056/Title.059/Title.084.flac",
+   "importedPath": "/music/Title.001/Title.084.flac",
+   "downloadClient": "SABnzbd",
+   "releaseGroup": null,
+   "size": "79529280",
+   "indexerFlags": "0"
+  },
+  "id": 46131
+ },
+ {
+  "albumId": 28008,
+  "artistId": 610,
+  "trackId": 581284,
+  "sourceTitle": "Title 085",
+  "quality": {
+   "quality": {
+    "id": 21,
+    "name": "Title 058"
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-10-02T20:01:53Z",
+  "downloadId": "eed45590-5cdd-4c33-9ded-0d0798d44ead",
+  "eventType": "trackFileImported",
+  "data": {
+   "fileId": "949747",
+   "droppedPath": "/downloads/usenet/music/Title.056/Title.074/Title.085.flac",
+   "importedPath": "/music/Title.001/Title.085.flac",
+   "downloadClient": "SABnzbd",
+   "releaseGroup": null,
+   "size": "94067031",
+   "indexerFlags": "0"
+  },
+  "id": 46130
+ },
+ {
+  "albumId": 27979,
+  "artistId": 610,
+  "trackId": 579514,
+  "sourceTitle": "Title 086",
+  "quality": {
+   "quality": {
+    "id": 21,
+    "name": "Title 058"
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-10-02T20:01:53Z",
+  "downloadId": "eed45590-5cdd-4c33-9ded-0d0798d44ead",
+  "eventType": "trackFileImported",
+  "data": {
+   "fileId": "949746",
+   "droppedPath": "/downloads/usenet/music/Title.056/Title.062/Title.086.flac",
+   "importedPath": "/music/Title.001/Title.086.flac",
+   "downloadClient": "SABnzbd",
+   "releaseGroup": null,
+   "size": "113302505",
+   "indexerFlags": "0"
+  },
+  "id": 46129
+ },
+ {
+  "albumId": 27908,
+  "artistId": 610,
+  "trackId": 576173,
+  "sourceTitle": "Title 087",
+  "quality": {
+   "quality": {
+    "id": 21,
+    "name": "Title 058"
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-10-02T20:01:53Z",
+  "downloadId": "eed45590-5cdd-4c33-9ded-0d0798d44ead",
+  "eventType": "trackFileImported",
+  "data": {
+   "fileId": "949745",
+   "droppedPath": "/downloads/usenet/music/Title.056/Title.068/Title.087.flac",
+   "importedPath": "/music/Title.001/Title.087.flac",
+   "downloadClient": "SABnzbd",
+   "releaseGroup": null,
+   "size": "166232061",
+   "indexerFlags": "0"
+  },
+  "id": 46128
+ },
+ {
+  "albumId": 28069,
+  "artistId": 610,
+  "trackId": 585283,
+  "sourceTitle": "Title 088",
+  "quality": {
+   "quality": {
+    "id": 21,
+    "name": "Title 058"
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-10-02T20:01:53Z",
+  "downloadId": "eed45590-5cdd-4c33-9ded-0d0798d44ead",
+  "eventType": "trackFileImported",
+  "data": {
+   "fileId": "949744",
+   "droppedPath": "/downloads/usenet/music/Title.056/Title.066/Title.088.flac",
+   "importedPath": "/music/Title.001/Title.088.flac",
+   "downloadClient": "SABnzbd",
+   "releaseGroup": null,
+   "size": "167335430",
+   "indexerFlags": "0"
+  },
+  "id": 46127
+ },
+ {
+  "albumId": 27979,
+  "artistId": 610,
+  "trackId": 579513,
+  "sourceTitle": "Title 089",
+  "quality": {
+   "quality": {
+    "id": 21,
+    "name": "Title 058"
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-10-02T20:01:53Z",
+  "downloadId": "eed45590-5cdd-4c33-9ded-0d0798d44ead",
+  "eventType": "trackFileImported",
+  "data": {
+   "fileId": "949743",
+   "droppedPath": "/downloads/usenet/music/Title.056/Title.062/Title.089.flac",
+   "importedPath": "/music/Title.001/Title.089.flac",
+   "downloadClient": "SABnzbd",
+   "releaseGroup": null,
+   "size": "66311757",
+   "indexerFlags": "0"
+  },
+  "id": 46126
+ },
+ {
+  "albumId": 28008,
+  "artistId": 610,
+  "trackId": 581283,
+  "sourceTitle": "Title 090",
+  "quality": {
+   "quality": {
+    "id": 21,
+    "name": "Title 058"
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-10-02T20:01:53Z",
+  "downloadId": "eed45590-5cdd-4c33-9ded-0d0798d44ead",
+  "eventType": "trackFileImported",
+  "data": {
+   "fileId": "949742",
+   "droppedPath": "/downloads/usenet/music/Title.056/Title.074/Title.090.flac",
+   "importedPath": "/music/Title.001/Title.090.flac",
+   "downloadClient": "SABnzbd",
+   "releaseGroup": null,
+   "size": "94470317",
+   "indexerFlags": "0"
+  },
+  "id": 46125
+ },
+ {
+  "albumId": 28082,
+  "artistId": 610,
+  "trackId": 587182,
+  "sourceTitle": "Title 091",
+  "quality": {
+   "quality": {
+    "id": 21,
+    "name": "Title 058"
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-10-02T20:01:53Z",
+  "downloadId": "eed45590-5cdd-4c33-9ded-0d0798d44ead",
+  "eventType": "trackFileImported",
+  "data": {
+   "fileId": "949741",
+   "droppedPath": "/downloads/usenet/music/Title.056/Title.092/Title.091.flac",
+   "importedPath": "/music/Title.001/Title.091.flac",
+   "downloadClient": "SABnzbd",
+   "releaseGroup": null,
+   "size": "103797366",
+   "indexerFlags": "0"
+  },
+  "id": 46124
+ },
+ {
+  "albumId": 2134,
+  "artistId": 610,
+  "trackId": 44645,
+  "sourceTitle": "Title 093",
+  "quality": {
+   "quality": {
+    "id": 21,
+    "name": "Title 058"
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-10-02T20:01:53Z",
+  "downloadId": "eed45590-5cdd-4c33-9ded-0d0798d44ead",
+  "eventType": "trackFileImported",
+  "data": {
+   "fileId": "949740",
+   "droppedPath": "/downloads/usenet/music/Title.056/Title.059/Title.093.flac",
+   "importedPath": "/music/Title.001/Title.093.flac",
+   "downloadClient": "SABnzbd",
+   "releaseGroup": null,
+   "size": "104108692",
+   "indexerFlags": "0"
+  },
+  "id": 46123
+ },
+ {
+  "albumId": 28069,
+  "artistId": 610,
+  "trackId": 585282,
+  "sourceTitle": "Title 094",
+  "quality": {
+   "quality": {
+    "id": 21,
+    "name": "Title 058"
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-10-02T20:01:53Z",
+  "downloadId": "eed45590-5cdd-4c33-9ded-0d0798d44ead",
+  "eventType": "trackFileImported",
+  "data": {
+   "fileId": "949739",
+   "droppedPath": "/downloads/usenet/music/Title.056/Title.066/Title.094.flac",
+   "importedPath": "/music/Title.001/Title.094.flac",
+   "downloadClient": "SABnzbd",
+   "releaseGroup": null,
+   "size": "123696525",
+   "indexerFlags": "0"
+  },
+  "id": 46122
+ },
+ {
+  "albumId": 27908,
+  "artistId": 610,
+  "trackId": 576172,
+  "sourceTitle": "Title 095",
+  "quality": {
+   "quality": {
+    "id": 21,
+    "name": "Title 058"
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-10-02T20:01:53Z",
+  "downloadId": "eed45590-5cdd-4c33-9ded-0d0798d44ead",
+  "eventType": "trackFileImported",
+  "data": {
+   "fileId": "949738",
+   "droppedPath": "/downloads/usenet/music/Title.056/Title.068/Title.095.flac",
+   "importedPath": "/music/Title.001/Title.095.flac",
+   "downloadClient": "SABnzbd",
+   "releaseGroup": null,
+   "size": "194372353",
+   "indexerFlags": "0"
+  },
+  "id": 46121
+ },
+ {
+  "albumId": 28069,
+  "artistId": 610,
+  "trackId": 585281,
+  "sourceTitle": "Title 096",
+  "quality": {
+   "quality": {
+    "id": 21,
+    "name": "Title 058"
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-10-02T20:01:53Z",
+  "downloadId": "eed45590-5cdd-4c33-9ded-0d0798d44ead",
+  "eventType": "trackFileImported",
+  "data": {
+   "fileId": "949737",
+   "droppedPath": "/downloads/usenet/music/Title.056/Title.066/Title.096.flac",
+   "importedPath": "/music/Title.001/Title.096.flac",
+   "downloadClient": "SABnzbd",
+   "releaseGroup": null,
+   "size": "14479969",
+   "indexerFlags": "0"
+  },
+  "id": 46120
+ },
+ {
+  "albumId": 28082,
+  "artistId": 610,
+  "trackId": 587181,
+  "sourceTitle": "Title 097",
+  "quality": {
+   "quality": {
+    "id": 21,
+    "name": "Title 058"
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-10-02T20:01:53Z",
+  "downloadId": "eed45590-5cdd-4c33-9ded-0d0798d44ead",
+  "eventType": "trackFileImported",
+  "data": {
+   "fileId": "949736",
+   "droppedPath": "/downloads/usenet/music/Title.056/Title.092/Title.097.flac",
+   "importedPath": "/music/Title.001/Title.097.flac",
+   "downloadClient": "SABnzbd",
+   "releaseGroup": null,
+   "size": "97790261",
+   "indexerFlags": "0"
+  },
+  "id": 46119
+ },
+ {
+  "albumId": 27979,
+  "artistId": 610,
+  "trackId": 579512,
+  "sourceTitle": "Title 098",
+  "quality": {
+   "quality": {
+    "id": 21,
+    "name": "Title 058"
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-10-02T20:01:53Z",
+  "downloadId": "eed45590-5cdd-4c33-9ded-0d0798d44ead",
+  "eventType": "trackFileImported",
+  "data": {
+   "fileId": "949735",
+   "droppedPath": "/downloads/usenet/music/Title.056/Title.062/Title.098.flac",
+   "importedPath": "/music/Title.001/Title.098.flac",
+   "downloadClient": "SABnzbd",
+   "releaseGroup": null,
+   "size": "102400953",
+   "indexerFlags": "0"
+  },
+  "id": 46118
+ },
+ {
+  "albumId": 2134,
+  "artistId": 610,
+  "trackId": 44644,
+  "sourceTitle": "Title 099",
+  "quality": {
+   "quality": {
+    "id": 21,
+    "name": "Title 058"
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-10-02T20:01:53Z",
+  "downloadId": "eed45590-5cdd-4c33-9ded-0d0798d44ead",
+  "eventType": "trackFileImported",
+  "data": {
+   "fileId": "949734",
+   "droppedPath": "/downloads/usenet/music/Title.056/Title.059/Title.099.flac",
+   "importedPath": "/music/Title.001/Title.099.flac",
+   "downloadClient": "SABnzbd",
+   "releaseGroup": null,
+   "size": "110183164",
+   "indexerFlags": "0"
+  },
+  "id": 46117
+ },
+ {
+  "albumId": 27990,
+  "artistId": 610,
+  "trackId": 580770,
+  "sourceTitle": "Title 100",
+  "quality": {
+   "quality": {
+    "id": 21,
+    "name": "Title 058"
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-10-02T20:01:53Z",
+  "downloadId": "eed45590-5cdd-4c33-9ded-0d0798d44ead",
+  "eventType": "trackFileImported",
+  "data": {
+   "fileId": "949733",
+   "droppedPath": "/downloads/usenet/music/Title.056/Title.101/Title.100.flac",
+   "importedPath": "/music/Title.001/Title.100.flac",
+   "downloadClient": "SABnzbd",
+   "releaseGroup": null,
+   "size": "113652248",
+   "indexerFlags": "0"
+  },
+  "id": 46116
+ },
+ {
+  "albumId": 28028,
+  "artistId": 610,
+  "trackId": 581891,
+  "sourceTitle": "Title 102",
+  "quality": {
+   "quality": {
+    "id": 21,
+    "name": "Title 058"
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-10-02T20:01:53Z",
+  "downloadId": "eed45590-5cdd-4c33-9ded-0d0798d44ead",
+  "eventType": "trackFileImported",
+  "data": {
+   "fileId": "949732",
+   "droppedPath": "/downloads/usenet/music/Title.056/Title.103/Title.102.flac",
+   "importedPath": "/music/Title.001/Title.102.flac",
+   "downloadClient": "SABnzbd",
+   "releaseGroup": null,
+   "size": "139048066",
+   "indexerFlags": "0"
+  },
+  "id": 46115
+ },
+ {
+  "albumId": 28008,
+  "artistId": 610,
+  "trackId": 581282,
+  "sourceTitle": "Title 104",
+  "quality": {
+   "quality": {
+    "id": 21,
+    "name": "Title 058"
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-10-02T20:01:53Z",
+  "downloadId": "eed45590-5cdd-4c33-9ded-0d0798d44ead",
+  "eventType": "trackFileImported",
+  "data": {
+   "fileId": "949731",
+   "droppedPath": "/downloads/usenet/music/Title.056/Title.074/Title.104.flac",
+   "importedPath": "/music/Title.001/Title.104.flac",
+   "downloadClient": "SABnzbd",
+   "releaseGroup": null,
+   "size": "145625924",
+   "indexerFlags": "0"
+  },
+  "id": 46114
+ }
+]

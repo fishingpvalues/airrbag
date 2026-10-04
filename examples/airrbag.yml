@@ -1,0 +1,62 @@
+# Airrbag example configuration.
+# Every ${NAME} is read from the environment, so secrets stay out of this file.
+
+# One entry per *Arr. Each gets its own listener: point your browser (and any
+# tool that deletes through the *Arr API) at the listener instead of the *Arr.
+instances:
+  - name: radarr
+    listen: ":17878"
+    upstream: http://radarr:7878
+    api_key: ${RADARR_API_KEY}
+    # app: auto          # sonarr | radarr | lidarr | readarr | whisparr | auto
+  - name: sonarr
+    listen: ":18989"
+    upstream: http://sonarr:8989
+    api_key: ${SONARR_API_KEY}
+
+# Download-client credentials. Airrbag finds each client's address in the
+# *Arr's own settings, but the *Arr API masks passwords, so they go here.
+# `name` must equal the client's name in the *Arr (Settings > Download Clients).
+clients:
+  - name: qBittorrent
+    type: qbittorrent
+    username: admin
+    password: ${QBITTORRENT_PASSWORD}
+    # url: http://qbittorrent:8080   # optional: overrides the discovered address
+  - name: SABnzbd
+    type: sabnzbd
+    api_key: ${SABNZBD_API_KEY}
+
+# Airrbag compares inodes, so it must see the same files the *Arr and the
+# torrent client see. Mount the media read-only into the Airrbag container
+# and translate each app's path prefix to Airrbag's.
+path_mappings:
+  - { from: /movies, to: /media/movies, source: arr }       # as the *Arr sees it
+  - { from: /tv, to: /media/tv, source: arr }
+  - { from: /downloads, to: /media/downloads, source: client }  # as qBittorrent sees it
+
+trackers:
+  # Optional roster of private trackers (domains, announce domains, name
+  # fragments). The torrent's own private flag is always honored as well.
+  # file: /config/private-trackers.json
+  private:
+    - example-tracker.org
+  # Seeding obligations. Met when either threshold is reached, unless
+  # require_both is set. A private torrent with no matching rule and no
+  # default is never considered done: the safe assumption.
+  rules:
+    - domains: [example-tracker.org]
+      min_seed_time: 72h
+      min_ratio: 1.0
+  default:
+    min_seed_time: 14d
+
+guard:
+  # enabled: true      # refuse deletes of "keep" files with 409 (default on)
+  # dry_run: false     # log what would be blocked instead of blocking
+  # fail_closed: true  # an unreachable torrent client + private indexer = keep
+  # grant_ttl: 2m      # how long a confirmation in the browser dialog lasts
+
+# cache_ttl: 5m
+# history_limit: 100000
+# log_level: info

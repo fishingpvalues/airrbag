@@ -1,0 +1,17 @@
+[
+ {
+  "movieId": 111,
+  "relativePath": "Title.017.mkv",
+  "path": "/storage2/media/movies/Title.016/Title.017.mkv",
+  "size": 4988097745,
+  "dateAdded": "2026-10-02T06:24:48Z",
+  "sceneName": "Title 008",
+  "releaseGroup": "Title 018",
+  "edition": "",
+  "customFormatScore": 0,
+  "indexerFlags": 0,
+  "originalFilePath": "Title 019",
+  "qualityCutoffNotMet": false,
+  "id": 830
+ }
+]

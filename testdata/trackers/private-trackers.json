@@ -1,0 +1,8 @@
+{
+ "version": 1,
+ "trackers": [
+  {"id": "example", "name": "ExampleTracker", "status": "active", "domains": ["example-tracker.org"],
+   "announce_domains": ["t.example-tracker.org"], "fragments": ["exampletracker"]},
+  {"id": "gone", "name": "GoneTracker", "status": "removed", "domains": ["gone.cc"]}
+ ]
+}

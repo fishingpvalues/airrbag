@@ -1,0 +1,28 @@
+name: Bug report
+description: Something does not work
+labels: [bug]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: Airrbag version
+      description: "`airrbag version`, or the image tag"
+    validations: { required: true }
+  - type: input
+    id: arr
+    attributes:
+      label: App and version
+      placeholder: "Radarr 6.4.4, qBittorrent 5.1"
+    validations: { required: true }
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: Expected, actual, how to reproduce. For a wrong verdict, include the /__airrbag/api/files output for that item (paths may be redacted).
+    validations: { required: true }
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Relevant lines with `log_level: debug`. Remove anything secret.
+      render: text

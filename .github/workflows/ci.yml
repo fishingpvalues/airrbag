@@ -1,0 +1,145 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Weekly: the integration matrix pins *Arr images, and Renovate bumps
+    # them; this catches drift in what the pinned builds themselves do.
+    - cron: "0 5 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  web:
+    name: web
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci --no-audit --no-fund
+        working-directory: web
+      - run: npm run typecheck
+        working-directory: web
+      - run: npm run build
+        working-directory: web
+      - uses: actions/upload-artifact@v4
+        with:
+          name: airrbag-js
+          path: internal/webassets/dist/airrbag.js
+          if-no-files-found: error
+
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - uses: golangci/golangci-lint-action@v9
+        with:
+          version: v2.12.2
+          args: --timeout=5m
+
+  test:
+    name: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - run: go test -race -coverprofile=coverage.out ./...
+      - run: go tool cover -func=coverage.out | tail -1
+
+  build:
+    name: build
+    needs: web
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - uses: actions/download-artifact@v4
+        with:
+          name: airrbag-js
+          path: internal/webassets/dist
+      - run: go build -trimpath -o airrbag ./cmd/airrbag && ./airrbag version
+      - run: ./airrbag check-config -config examples/airrbag.yml
+        env:
+          RADARR_API_KEY: x
+          SONARR_API_KEY: x
+          QBITTORRENT_PASSWORD: x
+          SABNZBD_API_KEY: x
+
+  docker:
+    name: docker
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - name: Build multi-arch (no push)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # One job per supported app, each against a pinned real image. The job
+  # name is fixed per app (not the image), so branch protection can rely on
+  # the aggregate ci-ok below instead of names that change with every bump.
+  integration:
+    name: integration-${{ matrix.app }}
+    needs: web
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - app: radarr
+            image: lscr.io/linuxserver/radarr:6.4.4.10685-ls318
+            port: 7878
+          - app: sonarr
+            image: lscr.io/linuxserver/sonarr:4.0.20.3014-ls326
+            port: 8989
+          - app: lidarr
+            image: lscr.io/linuxserver/lidarr:3.1.0.4875-ls42
+            port: 8686
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - uses: actions/download-artifact@v4
+        with:
+          name: airrbag-js
+          path: internal/webassets/dist
+      - run: scripts/integration.sh "${{ matrix.app }}" "${{ matrix.image }}" "${{ matrix.port }}"
+
+  # The single required status check. Matrix job names change; this does not.
+  ci-ok:
+    name: ci-ok
+    if: always()
+    needs: [web, lint, test, build, docker, integration]
+    runs-on: ubuntu-latest
+    steps:
+      - name: All jobs passed
+        run: |
+          echo '${{ toJSON(needs) }}' | jq -e 'to_entries | all(.value.result == "success")'

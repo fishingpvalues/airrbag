@@ -1,0 +1,26 @@
+pre-commit:
+  parallel: true
+  commands:
+    gofmt:
+      glob: "*.go"
+      run: gofmt -s -l {staged_files} | (! grep .)
+    golangci:
+      glob: "*.go"
+      run: golangci-lint run --new-from-rev=HEAD
+    typecheck:
+      glob: "web/src/*.ts"
+      run: cd web && npx tsc --noEmit
+
+commit-msg:
+  commands:
+    conventional:
+      run: |
+        head -1 "{1}" | grep -qE '^(feat|fix|perf|refactor|docs|test|ci|build|chore|revert|style)(\([a-z0-9._/-]+\))?!?: .+' || {
+          echo "Commit subject must be a Conventional Commit: feat(scope): ..., fix: ..., docs: ..."
+          exit 1
+        }
+
+pre-push:
+  commands:
+    test:
+      run: go test ./... -count=1

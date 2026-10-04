@@ -1,0 +1,2524 @@
+[
+ {
+  "episodeId": 7270,
+  "seriesId": 72,
+  "sourceTitle": "Title 135",
+  "languages": [
+   {
+    "id": 1,
+    "name": "Title 029"
+   }
+  ],
+  "quality": {
+   "quality": {
+    "id": 3,
+    "name": "Title 010",
+    "source": "web",
+    "resolution": 1080
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [
+   {
+    "id": 65,
+    "name": "Title 011"
+   },
+   {
+    "id": 46,
+    "name": "Title 032"
+   },
+   {
+    "id": 35,
+    "name": "Title 023"
+   },
+   {
+    "id": 38,
+    "name": "Title 136"
+   }
+  ],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-10-03T01:32:54Z",
+  "downloadId": "2E0FD761F3E25E8BE72A0CA6946C369E61C4B3EA",
+  "eventType": "downloadFailed",
+  "data": {
+   "downloadClient": "qBittorrent",
+   "downloadClientName": "qBittorrent (Seed)",
+   "message": "Title 137",
+   "releaseGroup": "Title 138",
+   "size": "1040718329"
+  },
+  "id": 6480
+ },
+ {
+  "episodeId": 7270,
+  "seriesId": 72,
+  "sourceTitle": "Title 135",
+  "languages": [
+   {
+    "id": 1,
+    "name": "Title 029"
+   }
+  ],
+  "quality": {
+   "quality": {
+    "id": 3,
+    "name": "Title 010",
+    "source": "web",
+    "resolution": 1080
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [
+   {
+    "id": 65,
+    "name": "Title 011"
+   },
+   {
+    "id": 46,
+    "name": "Title 032"
+   },
+   {
+    "id": 35,
+    "name": "Title 023"
+   },
+   {
+    "id": 38,
+    "name": "Title 136"
+   }
+  ],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-10-03T01:31:30Z",
+  "downloadId": "2E0FD761F3E25E8BE72A0CA6946C369E61C4B3EA",
+  "eventType": "grabbed",
+  "data": {
+   "indexer": "Indexer4 (Prowlarr)",
+   "nzbInfoUrl": "REDACTED",
+   "releaseGroup": null,
+   "age": "0",
+   "ageHours": "0.3184724584722222",
+   "ageMinutes": "19.108347656666666",
+   "publishedDate": "2026-10-03T01:12:24Z",
+   "downloadClient": "qBittorrent",
+   "downloadClientName": "qBittorrent (Seed)",
+   "size": "1040722165",
+   "downloadUrl": "REDACTED",
+   "guid": "REDACTED",
+   "tvdbId": "0",
+   "tvRageId": "0",
+   "imdbId": null,
+   "protocol": "2",
+   "customFormatScore": "0",
+   "seriesMatchType": "Title",
+   "releaseSource": "Rss",
+   "indexerFlags": "Freeleech",
+   "releaseType": "SingleEpisode",
+   "torrentInfoHash": "2E0FD761F3E25E8BE72A0CA6946C369E61C4B3EA"
+  },
+  "id": 6479
+ },
+ {
+  "episodeId": 7270,
+  "seriesId": 72,
+  "sourceTitle": "Title 139",
+  "languages": [
+   {
+    "id": 1,
+    "name": "Title 029"
+   }
+  ],
+  "quality": {
+   "quality": {
+    "id": 3,
+    "name": "Title 010",
+    "source": "web",
+    "resolution": 1080
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [
+   {
+    "id": 65,
+    "name": "Title 011"
+   },
+   {
+    "id": 46,
+    "name": "Title 032"
+   },
+   {
+    "id": 35,
+    "name": "Title 023"
+   },
+   {
+    "id": 38,
+    "name": "Title 136"
+   }
+  ],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-10-01T15:42:08Z",
+  "downloadId": "2356B9B02C62D04ECD3ACAD753A5FB8A15BBC107",
+  "eventType": "downloadFailed",
+  "data": {
+   "downloadClient": "qBittorrent",
+   "downloadClientName": "qBittorrent (Seed)",
+   "message": "Title 137",
+   "releaseGroup": "Title 140",
+   "size": "972026266"
+  },
+  "id": 6428
+ },
+ {
+  "episodeId": 7270,
+  "seriesId": 72,
+  "sourceTitle": "Title 139",
+  "languages": [
+   {
+    "id": 1,
+    "name": "Title 029"
+   }
+  ],
+  "quality": {
+   "quality": {
+    "id": 3,
+    "name": "Title 010",
+    "source": "web",
+    "resolution": 1080
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [
+   {
+    "id": 65,
+    "name": "Title 011"
+   },
+   {
+    "id": 46,
+    "name": "Title 032"
+   },
+   {
+    "id": 35,
+    "name": "Title 023"
+   },
+   {
+    "id": 38,
+    "name": "Title 136"
+   }
+  ],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-10-01T15:37:45Z",
+  "downloadId": "2356B9B02C62D04ECD3ACAD753A5FB8A15BBC107",
+  "eventType": "grabbed",
+  "data": {
+   "indexer": "Indexer4 (Prowlarr)",
+   "nzbInfoUrl": "REDACTED",
+   "releaseGroup": null,
+   "age": "0",
+   "ageHours": "0.16881248605555554",
+   "ageMinutes": "10.128749201666666",
+   "publishedDate": "2026-10-01T15:27:38Z",
+   "downloadClient": "qBittorrent",
+   "downloadClientName": "qBittorrent (Seed)",
+   "size": "972029952",
+   "downloadUrl": "REDACTED",
+   "guid": "REDACTED",
+   "tvdbId": "0",
+   "tvRageId": "0",
+   "imdbId": null,
+   "protocol": "2",
+   "customFormatScore": "0",
+   "seriesMatchType": "Title",
+   "releaseSource": "Rss",
+   "indexerFlags": "Freeleech",
+   "releaseType": "SingleEpisode",
+   "torrentInfoHash": "2356B9B02C62D04ECD3ACAD753A5FB8A15BBC107"
+  },
+  "id": 6427
+ },
+ {
+  "episodeId": 7270,
+  "seriesId": 72,
+  "sourceTitle": "Title 141",
+  "languages": [
+   {
+    "id": 1,
+    "name": "Title 029"
+   }
+  ],
+  "quality": {
+   "quality": {
+    "id": 9,
+    "name": "Title 142",
+    "source": "television",
+    "resolution": 1080
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [
+   {
+    "id": 65,
+    "name": "Title 011"
+   },
+   {
+    "id": 46,
+    "name": "Title 032"
+   },
+   {
+    "id": 35,
+    "name": "Title 023"
+   }
+  ],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-10-01T14:54:38Z",
+  "downloadId": "4B41D6A27C013DA257B9D5554889E3E8C6D8D200",
+  "eventType": "downloadFailed",
+  "data": {
+   "downloadClient": "qBittorrent",
+   "downloadClientName": "qBittorrent (Seed)",
+   "message": "Title 137",
+   "releaseGroup": null,
+   "size": "1259083264"
+  },
+  "id": 6426
+ },
+ {
+  "episodeId": 7270,
+  "seriesId": 72,
+  "sourceTitle": "Title 141",
+  "languages": [
+   {
+    "id": 1,
+    "name": "Title 029"
+   }
+  ],
+  "quality": {
+   "quality": {
+    "id": 9,
+    "name": "Title 142",
+    "source": "television",
+    "resolution": 1080
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [
+   {
+    "id": 65,
+    "name": "Title 011"
+   },
+   {
+    "id": 46,
+    "name": "Title 032"
+   },
+   {
+    "id": 35,
+    "name": "Title 023"
+   }
+  ],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-10-01T14:53:16Z",
+  "downloadId": "4B41D6A27C013DA257B9D5554889E3E8C6D8D200",
+  "eventType": "grabbed",
+  "data": {
+   "indexer": "Indexer5 (Prowlarr)",
+   "nzbInfoUrl": "REDACTED",
+   "releaseGroup": null,
+   "age": "0",
+   "ageHours": "0.0017989288333333333",
+   "ageMinutes": "0.10793578166666666",
+   "publishedDate": "2026-10-01T14:53:10Z",
+   "downloadClient": "qBittorrent",
+   "downloadClientName": "qBittorrent (Seed)",
+   "size": "1256277934",
+   "downloadUrl": "REDACTED",
+   "guid": "REDACTED",
+   "tvdbId": "0",
+   "tvRageId": "0",
+   "imdbId": null,
+   "protocol": "2",
+   "customFormatScore": "0",
+   "seriesMatchType": "Title",
+   "releaseSource": "Search",
+   "indexerFlags": "Freeleech",
+   "releaseType": "SingleEpisode",
+   "torrentInfoHash": "4B41D6A27C013DA257B9D5554889E3E8C6D8D200"
+  },
+  "id": 6425
+ },
+ {
+  "episodeId": 7270,
+  "seriesId": 72,
+  "sourceTitle": "Title 143",
+  "languages": [
+   {
+    "id": 1,
+    "name": "Title 029"
+   }
+  ],
+  "quality": {
+   "quality": {
+    "id": 3,
+    "name": "Title 010",
+    "source": "web",
+    "resolution": 1080
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [
+   {
+    "id": 65,
+    "name": "Title 011"
+   },
+   {
+    "id": 46,
+    "name": "Title 032"
+   },
+   {
+    "id": 35,
+    "name": "Title 023"
+   },
+   {
+    "id": 38,
+    "name": "Title 136"
+   }
+  ],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-10-01T14:53:08Z",
+  "downloadId": "A2027FF5420FD2A592C8F0EF2C7BC8DA864340A7",
+  "eventType": "downloadFailed",
+  "data": {
+   "downloadClient": "qBittorrent",
+   "downloadClientName": "qBittorrent (Seed)",
+   "message": "Title 137",
+   "releaseGroup": "Title 144",
+   "size": "869211326"
+  },
+  "id": 6424
+ },
+ {
+  "episodeId": 7270,
+  "seriesId": 72,
+  "sourceTitle": "Title 143",
+  "languages": [
+   {
+    "id": 1,
+    "name": "Title 029"
+   }
+  ],
+  "quality": {
+   "quality": {
+    "id": 3,
+    "name": "Title 010",
+    "source": "web",
+    "resolution": 1080
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [
+   {
+    "id": 65,
+    "name": "Title 011"
+   },
+   {
+    "id": 46,
+    "name": "Title 032"
+   },
+   {
+    "id": 35,
+    "name": "Title 023"
+   },
+   {
+    "id": 38,
+    "name": "Title 136"
+   }
+  ],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-10-01T14:51:41Z",
+  "downloadId": "A2027FF5420FD2A592C8F0EF2C7BC8DA864340A7",
+  "eventType": "grabbed",
+  "data": {
+   "indexer": "Indexer5 (Prowlarr)",
+   "nzbInfoUrl": "REDACTED",
+   "releaseGroup": null,
+   "age": "2",
+   "ageHours": "48.001239521416665",
+   "ageMinutes": "2880.07437138",
+   "publishedDate": "2026-09-29T14:51:37Z",
+   "downloadClient": "qBittorrent",
+   "downloadClientName": "qBittorrent (Seed)",
+   "size": "869206589",
+   "downloadUrl": "REDACTED",
+   "guid": "REDACTED",
+   "tvdbId": "0",
+   "tvRageId": "0",
+   "imdbId": null,
+   "protocol": "2",
+   "customFormatScore": "0",
+   "seriesMatchType": "Title",
+   "releaseSource": "UserInvokedSearch",
+   "indexerFlags": "Freeleech",
+   "releaseType": "SingleEpisode",
+   "torrentInfoHash": "A2027FF5420FD2A592C8F0EF2C7BC8DA864340A7"
+  },
+  "id": 6423
+ },
+ {
+  "episodeId": 7270,
+  "seriesId": 72,
+  "sourceTitle": "Title 145",
+  "languages": [
+   {
+    "id": 1,
+    "name": "Title 029"
+   }
+  ],
+  "quality": {
+   "quality": {
+    "id": 3,
+    "name": "Title 010",
+    "source": "web",
+    "resolution": 1080
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [
+   {
+    "id": 65,
+    "name": "Title 011"
+   },
+   {
+    "id": 46,
+    "name": "Title 032"
+   },
+   {
+    "id": 38,
+    "name": "Title 136"
+   },
+   {
+    "id": 10,
+    "name": "Title 146"
+   }
+  ],
+  "customFormatScore": 1700,
+  "qualityCutoffNotMet": false,
+  "date": "2026-10-01T14:45:01Z",
+  "downloadId": "2356B9B02C62D04ECD3ACAD753A5FB8A15BBC107",
+  "eventType": "downloadFailed",
+  "data": {
+   "downloadClient": "qBittorrent",
+   "downloadClientName": "qBittorrent (Seed)",
+   "message": "Title 027",
+   "releaseGroup": "Title 140",
+   "size": "972026266"
+  },
+  "id": 6422
+ },
+ {
+  "episodeId": 7270,
+  "seriesId": 72,
+  "sourceTitle": "Title 145",
+  "languages": [
+   {
+    "id": 1,
+    "name": "Title 029"
+   }
+  ],
+  "quality": {
+   "quality": {
+    "id": 3,
+    "name": "Title 010",
+    "source": "web",
+    "resolution": 1080
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [
+   {
+    "id": 65,
+    "name": "Title 011"
+   },
+   {
+    "id": 46,
+    "name": "Title 032"
+   },
+   {
+    "id": 38,
+    "name": "Title 136"
+   },
+   {
+    "id": 10,
+    "name": "Title 146"
+   }
+  ],
+  "customFormatScore": 1700,
+  "qualityCutoffNotMet": false,
+  "date": "2026-10-01T14:35:44Z",
+  "downloadId": "2356B9B02C62D04ECD3ACAD753A5FB8A15BBC107",
+  "eventType": "grabbed",
+  "data": {
+   "indexer": "Indexer6 (Prowlarr)",
+   "nzbInfoUrl": "REDACTED",
+   "releaseGroup": "Title 140",
+   "age": "0",
+   "ageHours": "0.04517958186111111",
+   "ageMinutes": "2.7107771666666665",
+   "publishedDate": "2026-10-01T14:33:02Z",
+   "downloadClient": "qBittorrent",
+   "downloadClientName": "qBittorrent (Seed)",
+   "size": "972029952",
+   "downloadUrl": "REDACTED",
+   "guid": "REDACTED",
+   "tvdbId": "0",
+   "tvRageId": "0",
+   "imdbId": null,
+   "protocol": "2",
+   "customFormatScore": "1700",
+   "seriesMatchType": "Title",
+   "releaseSource": "Rss",
+   "indexerFlags": "Freeleech",
+   "releaseType": "SingleEpisode",
+   "torrentInfoHash": "2356b9b02c62d04ecd3acad753a5fb8a15bbc107"
+  },
+  "id": 6421
+ },
+ {
+  "episodeId": 7270,
+  "seriesId": 72,
+  "sourceTitle": "Title 143",
+  "languages": [
+   {
+    "id": 1,
+    "name": "Title 029"
+   }
+  ],
+  "quality": {
+   "quality": {
+    "id": 3,
+    "name": "Title 010",
+    "source": "web",
+    "resolution": 1080
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [
+   {
+    "id": 65,
+    "name": "Title 011"
+   },
+   {
+    "id": 46,
+    "name": "Title 032"
+   },
+   {
+    "id": 35,
+    "name": "Title 023"
+   },
+   {
+    "id": 38,
+    "name": "Title 136"
+   }
+  ],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-09-29T14:00:02Z",
+  "downloadId": "A2027FF5420FD2A592C8F0EF2C7BC8DA864340A7",
+  "eventType": "downloadFailed",
+  "data": {
+   "downloadClient": "qBittorrent",
+   "downloadClientName": "qBittorrent (Seed)",
+   "message": "Title 027",
+   "releaseGroup": "Title 144",
+   "size": "869211326"
+  },
+  "id": 6384
+ },
+ {
+  "episodeId": 7270,
+  "seriesId": 72,
+  "sourceTitle": "Title 143",
+  "languages": [
+   {
+    "id": 1,
+    "name": "Title 029"
+   }
+  ],
+  "quality": {
+   "quality": {
+    "id": 3,
+    "name": "Title 010",
+    "source": "web",
+    "resolution": 1080
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [
+   {
+    "id": 65,
+    "name": "Title 011"
+   },
+   {
+    "id": 46,
+    "name": "Title 032"
+   },
+   {
+    "id": 35,
+    "name": "Title 023"
+   },
+   {
+    "id": 38,
+    "name": "Title 136"
+   }
+  ],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-09-29T13:54:55Z",
+  "downloadId": "A2027FF5420FD2A592C8F0EF2C7BC8DA864340A7",
+  "eventType": "grabbed",
+  "data": {
+   "indexer": "Indexer4 (Prowlarr)",
+   "nzbInfoUrl": "REDACTED",
+   "releaseGroup": null,
+   "age": "0",
+   "ageHours": "0.07825744",
+   "ageMinutes": "4.695446448333334",
+   "publishedDate": "2026-09-29T13:50:14Z",
+   "downloadClient": "qBittorrent",
+   "downloadClientName": "qBittorrent (Seed)",
+   "size": "869206589",
+   "downloadUrl": "REDACTED",
+   "guid": "REDACTED",
+   "tvdbId": "0",
+   "tvRageId": "0",
+   "imdbId": null,
+   "protocol": "2",
+   "customFormatScore": "0",
+   "seriesMatchType": "Title",
+   "releaseSource": "Rss",
+   "indexerFlags": "Freeleech",
+   "releaseType": "SingleEpisode",
+   "torrentInfoHash": "A2027FF5420FD2A592C8F0EF2C7BC8DA864340A7"
+  },
+  "id": 6382
+ },
+ {
+  "episodeId": 7270,
+  "seriesId": 72,
+  "sourceTitle": "Title 141",
+  "languages": [
+   {
+    "id": 1,
+    "name": "Title 029"
+   }
+  ],
+  "quality": {
+   "quality": {
+    "id": 9,
+    "name": "Title 142",
+    "source": "television",
+    "resolution": 1080
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [
+   {
+    "id": 65,
+    "name": "Title 011"
+   },
+   {
+    "id": 46,
+    "name": "Title 032"
+   },
+   {
+    "id": 35,
+    "name": "Title 023"
+   }
+  ],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-09-28T15:04:03Z",
+  "downloadId": "D036DC2BD1EF49B27F3B881535ED6602B9764203",
+  "eventType": "downloadFailed",
+  "data": {
+   "downloadClient": "qBittorrent",
+   "downloadClientName": "qBittorrent (Seed)",
+   "message": "Title 137",
+   "releaseGroup": null,
+   "size": "1154297856"
+  },
+  "id": 6329
+ },
+ {
+  "episodeId": 7270,
+  "seriesId": 72,
+  "sourceTitle": "Title 141",
+  "languages": [
+   {
+    "id": 1,
+    "name": "Title 029"
+   }
+  ],
+  "quality": {
+   "quality": {
+    "id": 9,
+    "name": "Title 142",
+    "source": "television",
+    "resolution": 1080
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [
+   {
+    "id": 65,
+    "name": "Title 011"
+   },
+   {
+    "id": 46,
+    "name": "Title 032"
+   },
+   {
+    "id": 35,
+    "name": "Title 023"
+   }
+  ],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-09-28T15:01:06Z",
+  "downloadId": "D036DC2BD1EF49B27F3B881535ED6602B9764203",
+  "eventType": "grabbed",
+  "data": {
+   "indexer": "Indexer4 (Prowlarr)",
+   "nzbInfoUrl": "REDACTED",
+   "releaseGroup": null,
+   "age": "0",
+   "ageHours": "0.2425819625",
+   "ageMinutes": "14.55491779",
+   "publishedDate": "2026-09-28T14:46:33Z",
+   "downloadClient": "qBittorrent",
+   "downloadClientName": "qBittorrent (Seed)",
+   "size": "1159641169",
+   "downloadUrl": "REDACTED",
+   "guid": "REDACTED",
+   "tvdbId": "0",
+   "tvRageId": "0",
+   "imdbId": null,
+   "protocol": "2",
+   "customFormatScore": "0",
+   "seriesMatchType": "Title",
+   "releaseSource": "Rss",
+   "indexerFlags": "Freeleech",
+   "releaseType": "SingleEpisode",
+   "torrentInfoHash": "D036DC2BD1EF49B27F3B881535ED6602B9764203"
+  },
+  "id": 6328
+ },
+ {
+  "episodeId": 7269,
+  "seriesId": 72,
+  "sourceTitle": "Title 147",
+  "languages": [
+   {
+    "id": 1,
+    "name": "Title 029"
+   }
+  ],
+  "quality": {
+   "quality": {
+    "id": 3,
+    "name": "Title 010",
+    "source": "web",
+    "resolution": 1080
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [
+   {
+    "id": 65,
+    "name": "Title 011"
+   },
+   {
+    "id": 46,
+    "name": "Title 032"
+   },
+   {
+    "id": 38,
+    "name": "Title 136"
+   }
+  ],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-09-28T01:04:27Z",
+  "downloadId": "6DC84249FFD308EF9EAA2A633DAD732A8871A4C7",
+  "eventType": "downloadFolderImported",
+  "data": {
+   "fileId": "5442",
+   "droppedPath": "/storage2/downloads/torrents/tv/Title.147/Title.148.mkv",
+   "importedPath": "/storage2/media/tv/Title.045/Title.043/Title.149.mkv",
+   "downloadClient": "qBittorrent",
+   "downloadClientName": "qBittorrent (Seed)",
+   "releaseGroup": "Title 150",
+   "customFormatScore": "0",
+   "size": "1612605003",
+   "indexerFlags": "Freeleech",
+   "releaseType": "SingleEpisode"
+  },
+  "id": 6323
+ },
+ {
+  "episodeId": 7269,
+  "seriesId": 72,
+  "sourceTitle": "Title 147",
+  "languages": [
+   {
+    "id": 1,
+    "name": "Title 029"
+   }
+  ],
+  "quality": {
+   "quality": {
+    "id": 3,
+    "name": "Title 010",
+    "source": "web",
+    "resolution": 1080
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [
+   {
+    "id": 65,
+    "name": "Title 011"
+   },
+   {
+    "id": 46,
+    "name": "Title 032"
+   },
+   {
+    "id": 38,
+    "name": "Title 136"
+   }
+  ],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-09-28T01:01:38Z",
+  "downloadId": "6DC84249FFD308EF9EAA2A633DAD732A8871A4C7",
+  "eventType": "grabbed",
+  "data": {
+   "indexer": "Indexer7 (Prowlarr)",
+   "nzbInfoUrl": "REDACTED",
+   "releaseGroup": "Title 150",
+   "age": "0",
+   "ageHours": "0.0003770712222222222",
+   "ageMinutes": "0.022660243333333333",
+   "publishedDate": "2026-09-28T01:01:37Z",
+   "downloadClient": "qBittorrent",
+   "downloadClientName": "qBittorrent (Seed)",
+   "size": "1610612736",
+   "downloadUrl": "REDACTED",
+   "guid": "REDACTED",
+   "tvdbId": "0",
+   "tvRageId": "0",
+   "imdbId": null,
+   "protocol": "2",
+   "customFormatScore": "0",
+   "seriesMatchType": "Title",
+   "releaseSource": "ReleasePush",
+   "indexerFlags": "Freeleech",
+   "releaseType": "SingleEpisode",
+   "torrentInfoHash": "6DC84249FFD308EF9EAA2A633DAD732A8871A4C7"
+  },
+  "id": 6322
+ },
+ {
+  "episodeId": 7269,
+  "seriesId": 72,
+  "sourceTitle": "Title 151",
+  "languages": [
+   {
+    "id": 1,
+    "name": "Title 029"
+   }
+  ],
+  "quality": {
+   "quality": {
+    "id": 3,
+    "name": "Title 010",
+    "source": "web",
+    "resolution": 1080
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [
+   {
+    "id": 65,
+    "name": "Title 011"
+   },
+   {
+    "id": 46,
+    "name": "Title 032"
+   },
+   {
+    "id": 35,
+    "name": "Title 023"
+   },
+   {
+    "id": 38,
+    "name": "Title 136"
+   }
+  ],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-09-25T18:44:32Z",
+  "downloadId": "824062CCE3D4862AC1036195DDD7584C6FB8FB39",
+  "eventType": "downloadFailed",
+  "data": {
+   "downloadClient": "qBittorrent",
+   "downloadClientName": "qBittorrent (Seed)",
+   "message": "Title 137",
+   "releaseGroup": "Title 150",
+   "size": "735655244"
+  },
+  "id": 6320
+ },
+ {
+  "episodeId": 7269,
+  "seriesId": 72,
+  "sourceTitle": "Title 151",
+  "languages": [
+   {
+    "id": 1,
+    "name": "Title 029"
+   }
+  ],
+  "quality": {
+   "quality": {
+    "id": 3,
+    "name": "Title 010",
+    "source": "web",
+    "resolution": 1080
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [
+   {
+    "id": 65,
+    "name": "Title 011"
+   },
+   {
+    "id": 46,
+    "name": "Title 032"
+   },
+   {
+    "id": 35,
+    "name": "Title 023"
+   },
+   {
+    "id": 38,
+    "name": "Title 136"
+   }
+  ],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-09-25T18:38:36Z",
+  "downloadId": "824062CCE3D4862AC1036195DDD7584C6FB8FB39",
+  "eventType": "grabbed",
+  "data": {
+   "indexer": "Indexer4 (Prowlarr)",
+   "nzbInfoUrl": "REDACTED",
+   "releaseGroup": null,
+   "age": "0",
+   "ageHours": "0.40132507563888886",
+   "ageMinutes": "24.07950636",
+   "publishedDate": "2026-09-25T18:14:32Z",
+   "downloadClient": "qBittorrent",
+   "downloadClientName": "qBittorrent (Seed)",
+   "size": "735659950",
+   "downloadUrl": "REDACTED",
+   "guid": "REDACTED",
+   "tvdbId": "0",
+   "tvRageId": "0",
+   "imdbId": null,
+   "protocol": "2",
+   "customFormatScore": "0",
+   "seriesMatchType": "Title",
+   "releaseSource": "Rss",
+   "indexerFlags": "Freeleech",
+   "releaseType": "SingleEpisode",
+   "torrentInfoHash": "824062CCE3D4862AC1036195DDD7584C6FB8FB39"
+  },
+  "id": 6319
+ },
+ {
+  "episodeId": 7269,
+  "seriesId": 72,
+  "sourceTitle": "Title 152",
+  "languages": [
+   {
+    "id": 1,
+    "name": "Title 029"
+   }
+  ],
+  "quality": {
+   "quality": {
+    "id": 3,
+    "name": "Title 010",
+    "source": "web",
+    "resolution": 1080
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [
+   {
+    "id": 65,
+    "name": "Title 011"
+   },
+   {
+    "id": 46,
+    "name": "Title 032"
+   },
+   {
+    "id": 35,
+    "name": "Title 023"
+   },
+   {
+    "id": 38,
+    "name": "Title 136"
+   }
+  ],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-09-24T16:48:47Z",
+  "downloadId": "DCD99219D209E67CECF27BB3A1CDD789D79EF333",
+  "eventType": "downloadFailed",
+  "data": {
+   "downloadClient": "qBittorrent",
+   "downloadClientName": "qBittorrent (Seed)",
+   "message": "Title 137",
+   "releaseGroup": "Title 153",
+   "size": "1068276008"
+  },
+  "id": 6318
+ },
+ {
+  "episodeId": 7269,
+  "seriesId": 72,
+  "sourceTitle": "Title 152",
+  "languages": [
+   {
+    "id": 1,
+    "name": "Title 029"
+   }
+  ],
+  "quality": {
+   "quality": {
+    "id": 3,
+    "name": "Title 010",
+    "source": "web",
+    "resolution": 1080
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [
+   {
+    "id": 65,
+    "name": "Title 011"
+   },
+   {
+    "id": 46,
+    "name": "Title 032"
+   },
+   {
+    "id": 35,
+    "name": "Title 023"
+   },
+   {
+    "id": 38,
+    "name": "Title 136"
+   }
+  ],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-09-24T16:45:04Z",
+  "downloadId": "DCD99219D209E67CECF27BB3A1CDD789D79EF333",
+  "eventType": "grabbed",
+  "data": {
+   "indexer": "Indexer4 (Prowlarr)",
+   "nzbInfoUrl": "REDACTED",
+   "releaseGroup": null,
+   "age": "0",
+   "ageHours": "0.004738629361111111",
+   "ageMinutes": "0.28431780166666665",
+   "publishedDate": "2026-09-24T16:44:47Z",
+   "downloadClient": "qBittorrent",
+   "downloadClientName": "qBittorrent (Seed)",
+   "size": "1068278743",
+   "downloadUrl": "REDACTED",
+   "guid": "REDACTED",
+   "tvdbId": "0",
+   "tvRageId": "0",
+   "imdbId": null,
+   "protocol": "2",
+   "customFormatScore": "0",
+   "seriesMatchType": "Title",
+   "releaseSource": "Rss",
+   "indexerFlags": "Freeleech",
+   "releaseType": "SingleEpisode",
+   "torrentInfoHash": "DCD99219D209E67CECF27BB3A1CDD789D79EF333"
+  },
+  "id": 6317
+ },
+ {
+  "episodeId": 7269,
+  "seriesId": 72,
+  "sourceTitle": "Title 154",
+  "languages": [
+   {
+    "id": 1,
+    "name": "Title 029"
+   }
+  ],
+  "quality": {
+   "quality": {
+    "id": 3,
+    "name": "Title 010",
+    "source": "web",
+    "resolution": 1080
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [
+   {
+    "id": 65,
+    "name": "Title 011"
+   },
+   {
+    "id": 46,
+    "name": "Title 032"
+   },
+   {
+    "id": 38,
+    "name": "Title 136"
+   }
+  ],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-09-24T16:00:02Z",
+  "downloadId": "DCD99219D209E67CECF27BB3A1CDD789D79EF333",
+  "eventType": "downloadFailed",
+  "data": {
+   "downloadClient": "qBittorrent",
+   "downloadClientName": "qBittorrent (Seed)",
+   "message": "Title 027",
+   "releaseGroup": "Title 153",
+   "size": "1068276008"
+  },
+  "id": 6316
+ },
+ {
+  "episodeId": 7269,
+  "seriesId": 72,
+  "sourceTitle": "Title 154",
+  "languages": [
+   {
+    "id": 1,
+    "name": "Title 029"
+   }
+  ],
+  "quality": {
+   "quality": {
+    "id": 3,
+    "name": "Title 010",
+    "source": "web",
+    "resolution": 1080
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [
+   {
+    "id": 65,
+    "name": "Title 011"
+   },
+   {
+    "id": 46,
+    "name": "Title 032"
+   },
+   {
+    "id": 38,
+    "name": "Title 136"
+   }
+  ],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-09-24T15:58:39Z",
+  "downloadId": "DCD99219D209E67CECF27BB3A1CDD789D79EF333",
+  "eventType": "grabbed",
+  "data": {
+   "indexer": "Indexer6 (Prowlarr)",
+   "nzbInfoUrl": "REDACTED",
+   "releaseGroup": "Title 153",
+   "age": "0",
+   "ageHours": "0.24459626925",
+   "ageMinutes": "14.675776181666667",
+   "publishedDate": "2026-09-24T15:43:59Z",
+   "downloadClient": "qBittorrent",
+   "downloadClientName": "qBittorrent (Seed)",
+   "size": "1063004405",
+   "downloadUrl": "REDACTED",
+   "guid": "REDACTED",
+   "tvdbId": "0",
+   "tvRageId": "0",
+   "imdbId": null,
+   "protocol": "2",
+   "customFormatScore": "0",
+   "seriesMatchType": "Title",
+   "releaseSource": "Rss",
+   "indexerFlags": "Freeleech",
+   "releaseType": "SingleEpisode",
+   "torrentInfoHash": "dcd99219d209e67cecf27bb3a1cdd789d79ef333"
+  },
+  "id": 6315
+ },
+ {
+  "episodeId": 7269,
+  "seriesId": 72,
+  "sourceTitle": "Title 155",
+  "languages": [
+   {
+    "id": 1,
+    "name": "Title 029"
+   }
+  ],
+  "quality": {
+   "quality": {
+    "id": 9,
+    "name": "Title 142",
+    "source": "television",
+    "resolution": 1080
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [
+   {
+    "id": 65,
+    "name": "Title 011"
+   },
+   {
+    "id": 46,
+    "name": "Title 032"
+   },
+   {
+    "id": 35,
+    "name": "Title 023"
+   }
+  ],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-09-22T09:18:40Z",
+  "downloadId": "64FB6BE6068EE00580226BD3915AFB1BFB2BD5C3",
+  "eventType": "downloadFailed",
+  "data": {
+   "downloadClient": "qBittorrent",
+   "downloadClientName": "qBittorrent (Seed)",
+   "message": "Title 137",
+   "releaseGroup": null,
+   "size": "1049540608"
+  },
+  "id": 6166
+ },
+ {
+  "episodeId": 7269,
+  "seriesId": 72,
+  "sourceTitle": "Title 155",
+  "languages": [
+   {
+    "id": 1,
+    "name": "Title 029"
+   }
+  ],
+  "quality": {
+   "quality": {
+    "id": 9,
+    "name": "Title 142",
+    "source": "television",
+    "resolution": 1080
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [
+   {
+    "id": 65,
+    "name": "Title 011"
+   },
+   {
+    "id": 46,
+    "name": "Title 032"
+   },
+   {
+    "id": 35,
+    "name": "Title 023"
+   }
+  ],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-09-22T09:15:45Z",
+  "downloadId": "64FB6BE6068EE00580226BD3915AFB1BFB2BD5C3",
+  "eventType": "grabbed",
+  "data": {
+   "indexer": "Indexer4 (Prowlarr)",
+   "nzbInfoUrl": "REDACTED",
+   "releaseGroup": null,
+   "age": "0",
+   "ageHours": "0.3683150678888889",
+   "ageMinutes": "22.098904105",
+   "publishedDate": "2026-09-22T08:53:40Z",
+   "downloadClient": "qBittorrent",
+   "downloadClientName": "qBittorrent (Seed)",
+   "size": "1049540689",
+   "downloadUrl": "REDACTED",
+   "guid": "REDACTED",
+   "tvdbId": "0",
+   "tvRageId": "0",
+   "imdbId": null,
+   "protocol": "2",
+   "customFormatScore": "0",
+   "seriesMatchType": "Title",
+   "releaseSource": "Rss",
+   "indexerFlags": "Freeleech",
+   "releaseType": "SingleEpisode",
+   "torrentInfoHash": "64FB6BE6068EE00580226BD3915AFB1BFB2BD5C3"
+  },
+  "id": 6165
+ },
+ {
+  "episodeId": 7268,
+  "seriesId": 72,
+  "sourceTitle": "Title 156",
+  "languages": [
+   {
+    "id": 1,
+    "name": "Title 029"
+   }
+  ],
+  "quality": {
+   "quality": {
+    "id": 3,
+    "name": "Title 010",
+    "source": "web",
+    "resolution": 1080
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [
+   {
+    "id": 65,
+    "name": "Title 011"
+   },
+   {
+    "id": 46,
+    "name": "Title 032"
+   },
+   {
+    "id": 38,
+    "name": "Title 136"
+   }
+  ],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-09-21T01:05:57Z",
+  "downloadId": "73298CFA72AD4F845A16E352A5B5921EB31923C1",
+  "eventType": "downloadFolderImported",
+  "data": {
+   "fileId": "5370",
+   "droppedPath": "/storage2/downloads/torrents/tv/Title.157/Title.156.mkv",
+   "importedPath": "/storage2/media/tv/Title.045/Title.043/Title.158.mkv",
+   "downloadClient": "qBittorrent",
+   "downloadClientName": "qBittorrent (Seed)",
+   "releaseGroup": "Title 150",
+   "customFormatScore": "0",
+   "size": "1831195083",
+   "indexerFlags": "0",
+   "releaseType": "SingleEpisode"
+  },
+  "id": 6138
+ },
+ {
+  "episodeId": 7268,
+  "seriesId": 72,
+  "sourceTitle": "Title 159",
+  "languages": [
+   {
+    "id": 1,
+    "name": "Title 029"
+   }
+  ],
+  "quality": {
+   "quality": {
+    "id": 3,
+    "name": "Title 010",
+    "source": "web",
+    "resolution": 1080
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [
+   {
+    "id": 65,
+    "name": "Title 011"
+   },
+   {
+    "id": 46,
+    "name": "Title 032"
+   }
+  ],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-09-21T01:05:57Z",
+  "eventType": "episodeFileDeleted",
+  "data": {
+   "reason": "Upgrade",
+   "releaseGroup": "Title 150",
+   "size": "1831195083",
+   "indexerFlags": "0",
+   "releaseType": "SingleEpisode"
+  },
+  "id": 6137
+ },
+ {
+  "episodeId": 7268,
+  "seriesId": 72,
+  "sourceTitle": "Title 156",
+  "languages": [
+   {
+    "id": 1,
+    "name": "Title 029"
+   }
+  ],
+  "quality": {
+   "quality": {
+    "id": 3,
+    "name": "Title 010",
+    "source": "web",
+    "resolution": 1080
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [
+   {
+    "id": 65,
+    "name": "Title 011"
+   },
+   {
+    "id": 46,
+    "name": "Title 032"
+   },
+   {
+    "id": 38,
+    "name": "Title 136"
+   }
+  ],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-09-21T01:05:57Z",
+  "downloadId": "C1A2FBC68F8D119E497FD5CAC760562205AE715A",
+  "eventType": "downloadFolderImported",
+  "data": {
+   "fileId": "5369",
+   "droppedPath": "/storage2/downloads/torrents/tv/Title.157/Title.156.mkv",
+   "importedPath": "/storage2/media/tv/Title.045/Title.043/Title.158.mkv",
+   "downloadClient": "qBittorrent",
+   "downloadClientName": "qBittorrent (Seed)",
+   "releaseGroup": "Title 150",
+   "customFormatScore": "0",
+   "size": "1831195083",
+   "indexerFlags": "0",
+   "releaseType": "SingleEpisode"
+  },
+  "id": 6136
+ },
+ {
+  "episodeId": 7268,
+  "seriesId": 72,
+  "sourceTitle": "Title 157",
+  "languages": [
+   {
+    "id": 1,
+    "name": "Title 029"
+   }
+  ],
+  "quality": {
+   "quality": {
+    "id": 3,
+    "name": "Title 010",
+    "source": "web",
+    "resolution": 1080
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [
+   {
+    "id": 65,
+    "name": "Title 011"
+   },
+   {
+    "id": 46,
+    "name": "Title 032"
+   },
+   {
+    "id": 38,
+    "name": "Title 136"
+   }
+  ],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-09-21T01:01:33Z",
+  "downloadId": "C1A2FBC68F8D119E497FD5CAC760562205AE715A",
+  "eventType": "grabbed",
+  "data": {
+   "indexer": "Indexer8 (Prowlarr)",
+   "nzbInfoUrl": "REDACTED",
+   "releaseGroup": "Title 150",
+   "age": "0",
+   "ageHours": "0.0009063660555555555",
+   "ageMinutes": "0.05438198833333333",
+   "publishedDate": "2026-09-21T01:01:30Z",
+   "downloadClient": "qBittorrent",
+   "downloadClientName": "qBittorrent (Seed)",
+   "size": "1860145398",
+   "downloadUrl": "REDACTED",
+   "guid": "REDACTED",
+   "tvdbId": "0",
+   "tvRageId": "0",
+   "imdbId": null,
+   "protocol": "2",
+   "customFormatScore": "0",
+   "seriesMatchType": "Title",
+   "releaseSource": "ReleasePush",
+   "indexerFlags": "0",
+   "releaseType": "SingleEpisode",
+   "torrentInfoHash": "C1A2FBC68F8D119E497FD5CAC760562205AE715A"
+  },
+  "id": 6135
+ },
+ {
+  "episodeId": 7268,
+  "seriesId": 72,
+  "sourceTitle": "Title 157",
+  "languages": [
+   {
+    "id": 1,
+    "name": "Title 029"
+   }
+  ],
+  "quality": {
+   "quality": {
+    "id": 3,
+    "name": "Title 010",
+    "source": "web",
+    "resolution": 1080
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [
+   {
+    "id": 65,
+    "name": "Title 011"
+   },
+   {
+    "id": 46,
+    "name": "Title 032"
+   },
+   {
+    "id": 38,
+    "name": "Title 136"
+   }
+  ],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-09-21T01:01:33Z",
+  "downloadId": "73298CFA72AD4F845A16E352A5B5921EB31923C1",
+  "eventType": "grabbed",
+  "data": {
+   "indexer": "Indexer9 (Prowlarr)",
+   "nzbInfoUrl": "REDACTED",
+   "releaseGroup": "Title 150",
+   "age": "0",
+   "ageHours": "0.012559102583333334",
+   "ageMinutes": "0.7535461833333333",
+   "publishedDate": "2026-09-21T01:00:48Z",
+   "downloadClient": "qBittorrent",
+   "downloadClientName": "qBittorrent (Seed)",
+   "size": "1860148590",
+   "downloadUrl": "REDACTED",
+   "guid": "REDACTED",
+   "tvdbId": "0",
+   "tvRageId": "0",
+   "imdbId": "0",
+   "protocol": "2",
+   "customFormatScore": "0",
+   "seriesMatchType": "Title",
+   "releaseSource": "Rss",
+   "indexerFlags": "0",
+   "releaseType": "SingleEpisode",
+   "torrentInfoHash": "73298CFA72AD4F845A16E352A5B5921EB31923C1"
+  },
+  "id": 6134
+ },
+ {
+  "episodeId": 7267,
+  "seriesId": 72,
+  "sourceTitle": "Title 055",
+  "languages": [
+   {
+    "id": 1,
+    "name": "Title 029"
+   }
+  ],
+  "quality": {
+   "quality": {
+    "id": 3,
+    "name": "Title 010",
+    "source": "web",
+    "resolution": 1080
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [
+   {
+    "id": 65,
+    "name": "Title 011"
+   },
+   {
+    "id": 19,
+    "name": "Title 160"
+   },
+   {
+    "id": 9,
+    "name": "Title 161"
+   },
+   {
+    "id": 46,
+    "name": "Title 032"
+   },
+   {
+    "id": 10,
+    "name": "Title 146"
+   }
+  ],
+  "customFormatScore": 1850,
+  "qualityCutoffNotMet": false,
+  "date": "2026-09-18T18:24:17Z",
+  "downloadId": "79dc862b-d47f-45d8-b261-5aa709cbd8a5",
+  "eventType": "downloadFolderImported",
+  "data": {
+   "fileId": "5355",
+   "droppedPath": "/storage2/downloads/usenet/tv/Title.055/Title.162.mkv",
+   "importedPath": "/storage2/media/tv/Title.045/Title.043/Title.054.mkv",
+   "downloadClient": "SABnzbd",
+   "downloadClientName": "SABnzbd",
+   "releaseGroup": "Title 047",
+   "customFormatScore": "1850",
+   "size": "2037559363",
+   "indexerFlags": "0",
+   "releaseType": "SingleEpisode"
+  },
+  "id": 6131
+ },
+ {
+  "episodeId": 7266,
+  "seriesId": 72,
+  "sourceTitle": "Title 053",
+  "languages": [
+   {
+    "id": 1,
+    "name": "Title 029"
+   }
+  ],
+  "quality": {
+   "quality": {
+    "id": 3,
+    "name": "Title 010",
+    "source": "web",
+    "resolution": 1080
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [
+   {
+    "id": 65,
+    "name": "Title 011"
+   },
+   {
+    "id": 19,
+    "name": "Title 160"
+   },
+   {
+    "id": 9,
+    "name": "Title 161"
+   },
+   {
+    "id": 46,
+    "name": "Title 032"
+   },
+   {
+    "id": 10,
+    "name": "Title 146"
+   }
+  ],
+  "customFormatScore": 1850,
+  "qualityCutoffNotMet": false,
+  "date": "2026-09-18T18:21:18Z",
+  "downloadId": "3f81475e-6a22-4c7c-83bf-e837cf5c4f74",
+  "eventType": "downloadFolderImported",
+  "data": {
+   "fileId": "5354",
+   "droppedPath": "/storage2/downloads/usenet/tv/Title.053/Title.163.mkv",
+   "importedPath": "/storage2/media/tv/Title.045/Title.043/Title.052.mkv",
+   "downloadClient": "SABnzbd",
+   "downloadClientName": "SABnzbd",
+   "releaseGroup": "Title 047",
+   "customFormatScore": "1850",
+   "size": "1681861855",
+   "indexerFlags": "0",
+   "releaseType": "SingleEpisode"
+  },
+  "id": 6130
+ },
+ {
+  "episodeId": 7265,
+  "seriesId": 72,
+  "sourceTitle": "Title 051",
+  "languages": [
+   {
+    "id": 1,
+    "name": "Title 029"
+   }
+  ],
+  "quality": {
+   "quality": {
+    "id": 3,
+    "name": "Title 010",
+    "source": "web",
+    "resolution": 1080
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [
+   {
+    "id": 65,
+    "name": "Title 011"
+   },
+   {
+    "id": 19,
+    "name": "Title 160"
+   },
+   {
+    "id": 9,
+    "name": "Title 161"
+   },
+   {
+    "id": 46,
+    "name": "Title 032"
+   },
+   {
+    "id": 10,
+    "name": "Title 146"
+   }
+  ],
+  "customFormatScore": 1850,
+  "qualityCutoffNotMet": false,
+  "date": "2026-09-18T18:19:47Z",
+  "downloadId": "cd88af0f-69c8-4b3a-b86d-e91e7f41e585",
+  "eventType": "downloadFolderImported",
+  "data": {
+   "fileId": "5353",
+   "droppedPath": "/storage2/downloads/usenet/tv/Title.051/Title.164.mkv",
+   "importedPath": "/storage2/media/tv/Title.045/Title.043/Title.050.mkv",
+   "downloadClient": "SABnzbd",
+   "downloadClientName": "SABnzbd",
+   "releaseGroup": "Title 047",
+   "customFormatScore": "1850",
+   "size": "1879384856",
+   "indexerFlags": "0",
+   "releaseType": "SingleEpisode"
+  },
+  "id": 6129
+ },
+ {
+  "episodeId": 7264,
+  "seriesId": 72,
+  "sourceTitle": "Title 049",
+  "languages": [
+   {
+    "id": 1,
+    "name": "Title 029"
+   }
+  ],
+  "quality": {
+   "quality": {
+    "id": 3,
+    "name": "Title 010",
+    "source": "web",
+    "resolution": 1080
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [
+   {
+    "id": 65,
+    "name": "Title 011"
+   },
+   {
+    "id": 19,
+    "name": "Title 160"
+   },
+   {
+    "id": 9,
+    "name": "Title 161"
+   },
+   {
+    "id": 46,
+    "name": "Title 032"
+   },
+   {
+    "id": 10,
+    "name": "Title 146"
+   }
+  ],
+  "customFormatScore": 1850,
+  "qualityCutoffNotMet": false,
+  "date": "2026-09-18T18:18:18Z",
+  "downloadId": "469c208d-c2b5-47c8-abce-2beda77dbc08",
+  "eventType": "downloadFolderImported",
+  "data": {
+   "fileId": "5352",
+   "droppedPath": "/storage2/downloads/usenet/tv/Title.049/Title.165.mkv",
+   "importedPath": "/storage2/media/tv/Title.045/Title.043/Title.048.mkv",
+   "downloadClient": "SABnzbd",
+   "downloadClientName": "SABnzbd",
+   "releaseGroup": "Title 047",
+   "customFormatScore": "1850",
+   "size": "1919587402",
+   "indexerFlags": "0",
+   "releaseType": "SingleEpisode"
+  },
+  "id": 6128
+ },
+ {
+  "episodeId": 7263,
+  "seriesId": 72,
+  "sourceTitle": "Title 046",
+  "languages": [
+   {
+    "id": 1,
+    "name": "Title 029"
+   }
+  ],
+  "quality": {
+   "quality": {
+    "id": 3,
+    "name": "Title 010",
+    "source": "web",
+    "resolution": 1080
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [
+   {
+    "id": 65,
+    "name": "Title 011"
+   },
+   {
+    "id": 19,
+    "name": "Title 160"
+   },
+   {
+    "id": 9,
+    "name": "Title 161"
+   },
+   {
+    "id": 46,
+    "name": "Title 032"
+   },
+   {
+    "id": 10,
+    "name": "Title 146"
+   }
+  ],
+  "customFormatScore": 1850,
+  "qualityCutoffNotMet": false,
+  "date": "2026-09-18T18:16:48Z",
+  "downloadId": "20afe56f-a12b-4587-a811-236aee450bc0",
+  "eventType": "downloadFolderImported",
+  "data": {
+   "fileId": "5351",
+   "droppedPath": "/storage2/downloads/usenet/tv/Title.046/Title.166.mkv",
+   "importedPath": "/storage2/media/tv/Title.045/Title.043/Title.044.mkv",
+   "downloadClient": "SABnzbd",
+   "downloadClientName": "SABnzbd",
+   "releaseGroup": "Title 047",
+   "customFormatScore": "1850",
+   "size": "2174688014",
+   "indexerFlags": "0",
+   "releaseType": "SingleEpisode"
+  },
+  "id": 6127
+ },
+ {
+  "episodeId": 7268,
+  "seriesId": 72,
+  "sourceTitle": "Title 167",
+  "languages": [
+   {
+    "id": 1,
+    "name": "Title 029"
+   }
+  ],
+  "quality": {
+   "quality": {
+    "id": 9,
+    "name": "Title 142",
+    "source": "television",
+    "resolution": 1080
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [
+   {
+    "id": 65,
+    "name": "Title 011"
+   },
+   {
+    "id": 46,
+    "name": "Title 032"
+   },
+   {
+    "id": 35,
+    "name": "Title 023"
+   }
+  ],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-09-18T18:15:01Z",
+  "downloadId": "6DC7E2C320C2E59ACBA799CF33FBE7A706489FBA",
+  "eventType": "downloadFailed",
+  "data": {
+   "downloadClient": "qBittorrent",
+   "downloadClientName": "qBittorrent (Seed)",
+   "message": "Title 027",
+   "releaseGroup": "Title 150",
+   "size": "1329513472"
+  },
+  "id": 6126
+ },
+ {
+  "episodeId": 7268,
+  "seriesId": 72,
+  "sourceTitle": "Title 167",
+  "languages": [
+   {
+    "id": 1,
+    "name": "Title 029"
+   }
+  ],
+  "quality": {
+   "quality": {
+    "id": 9,
+    "name": "Title 142",
+    "source": "television",
+    "resolution": 1080
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [
+   {
+    "id": 65,
+    "name": "Title 011"
+   },
+   {
+    "id": 46,
+    "name": "Title 032"
+   },
+   {
+    "id": 35,
+    "name": "Title 023"
+   }
+  ],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-09-18T18:14:10Z",
+  "downloadId": "6DC7E2C320C2E59ACBA799CF33FBE7A706489FBA",
+  "eventType": "grabbed",
+  "data": {
+   "indexer": "Indexer4 (Prowlarr)",
+   "nzbInfoUrl": "REDACTED",
+   "releaseGroup": null,
+   "age": "2",
+   "ageHours": "48.0083502745",
+   "ageMinutes": "2880.5010164933333",
+   "publishedDate": "2026-09-16T18:13:40Z",
+   "downloadClient": "qBittorrent",
+   "downloadClientName": "qBittorrent (Seed)",
+   "size": "1331439861",
+   "downloadUrl": "REDACTED",
+   "guid": "REDACTED",
+   "tvdbId": "0",
+   "tvRageId": "0",
+   "imdbId": null,
+   "protocol": "2",
+   "customFormatScore": "0",
+   "seriesMatchType": "Title",
+   "releaseSource": "Search",
+   "indexerFlags": "Freeleech",
+   "releaseType": "SingleEpisode",
+   "torrentInfoHash": "6DC7E2C320C2E59ACBA799CF33FBE7A706489FBA"
+  },
+  "id": 6125
+ },
+ {
+  "episodeId": 7267,
+  "seriesId": 72,
+  "sourceTitle": "Title 055",
+  "languages": [
+   {
+    "id": 1,
+    "name": "Title 029"
+   }
+  ],
+  "quality": {
+   "quality": {
+    "id": 3,
+    "name": "Title 010",
+    "source": "web",
+    "resolution": 1080
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [
+   {
+    "id": 65,
+    "name": "Title 011"
+   },
+   {
+    "id": 19,
+    "name": "Title 160"
+   },
+   {
+    "id": 9,
+    "name": "Title 161"
+   },
+   {
+    "id": 46,
+    "name": "Title 032"
+   },
+   {
+    "id": 10,
+    "name": "Title 146"
+   }
+  ],
+  "customFormatScore": 1850,
+  "qualityCutoffNotMet": false,
+  "date": "2026-09-18T18:14:09Z",
+  "downloadId": "79dc862b-d47f-45d8-b261-5aa709cbd8a5",
+  "eventType": "grabbed",
+  "data": {
+   "indexer": "NZBHydra2 (Prowlarr)",
+   "nzbInfoUrl": "REDACTED",
+   "releaseGroup": "Title 047",
+   "age": "4",
+   "ageHours": "98.6778502783611",
+   "ageMinutes": "5920.67101673",
+   "publishedDate": "2026-09-14T15:33:29Z",
+   "downloadClient": "SABnzbd",
+   "downloadClientName": "SABnzbd",
+   "size": "2209456291",
+   "downloadUrl": "REDACTED",
+   "guid": "REDACTED",
+   "tvdbId": "0",
+   "tvRageId": "0",
+   "imdbId": "0",
+   "protocol": "1",
+   "customFormatScore": "1850",
+   "seriesMatchType": "Title",
+   "releaseSource": "Search",
+   "indexerFlags": "0",
+   "releaseType": "SingleEpisode"
+  },
+  "id": 6124
+ },
+ {
+  "episodeId": 7266,
+  "seriesId": 72,
+  "sourceTitle": "Title 053",
+  "languages": [
+   {
+    "id": 1,
+    "name": "Title 029"
+   }
+  ],
+  "quality": {
+   "quality": {
+    "id": 3,
+    "name": "Title 010",
+    "source": "web",
+    "resolution": 1080
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [
+   {
+    "id": 65,
+    "name": "Title 011"
+   },
+   {
+    "id": 19,
+    "name": "Title 160"
+   },
+   {
+    "id": 9,
+    "name": "Title 161"
+   },
+   {
+    "id": 46,
+    "name": "Title 032"
+   },
+   {
+    "id": 10,
+    "name": "Title 146"
+   }
+  ],
+  "customFormatScore": 1850,
+  "qualityCutoffNotMet": false,
+  "date": "2026-09-18T18:14:07Z",
+  "downloadId": "3f81475e-6a22-4c7c-83bf-e837cf5c4f74",
+  "eventType": "grabbed",
+  "data": {
+   "indexer": "NZBHydra2 (Prowlarr)",
+   "nzbInfoUrl": "REDACTED",
+   "releaseGroup": "Title 047",
+   "age": "4",
+   "ageHours": "98.63861687908333",
+   "ageMinutes": "5918.317012771667",
+   "publishedDate": "2026-09-14T15:35:48Z",
+   "downloadClient": "SABnzbd",
+   "downloadClientName": "SABnzbd",
+   "size": "1823554120",
+   "downloadUrl": "REDACTED",
+   "guid": "REDACTED",
+   "tvdbId": "0",
+   "tvRageId": "0",
+   "imdbId": "0",
+   "protocol": "1",
+   "customFormatScore": "1850",
+   "seriesMatchType": "Title",
+   "releaseSource": "Search",
+   "indexerFlags": "0",
+   "releaseType": "SingleEpisode"
+  },
+  "id": 6123
+ },
+ {
+  "episodeId": 7265,
+  "seriesId": 72,
+  "sourceTitle": "Title 051",
+  "languages": [
+   {
+    "id": 1,
+    "name": "Title 029"
+   }
+  ],
+  "quality": {
+   "quality": {
+    "id": 3,
+    "name": "Title 010",
+    "source": "web",
+    "resolution": 1080
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [
+   {
+    "id": 65,
+    "name": "Title 011"
+   },
+   {
+    "id": 19,
+    "name": "Title 160"
+   },
+   {
+    "id": 9,
+    "name": "Title 161"
+   },
+   {
+    "id": 46,
+    "name": "Title 032"
+   },
+   {
+    "id": 10,
+    "name": "Title 146"
+   }
+  ],
+  "customFormatScore": 1850,
+  "qualityCutoffNotMet": false,
+  "date": "2026-09-18T18:14:05Z",
+  "downloadId": "cd88af0f-69c8-4b3a-b86d-e91e7f41e585",
+  "eventType": "grabbed",
+  "data": {
+   "indexer": "NZBHydra2 (Prowlarr)",
+   "nzbInfoUrl": "REDACTED",
+   "releaseGroup": "Title 047",
+   "age": "18",
+   "ageHours": "434.26672882375",
+   "ageMinutes": "26056.003729453332",
+   "publishedDate": "2026-08-31T15:58:05Z",
+   "downloadClient": "SABnzbd",
+   "downloadClientName": "SABnzbd",
+   "size": "2037688940",
+   "downloadUrl": "REDACTED",
+   "guid": "REDACTED",
+   "tvdbId": "0",
+   "tvRageId": "0",
+   "imdbId": "0",
+   "protocol": "1",
+   "customFormatScore": "1850",
+   "seriesMatchType": "Title",
+   "releaseSource": "Search",
+   "indexerFlags": "0",
+   "releaseType": "SingleEpisode"
+  },
+  "id": 6122
+ },
+ {
+  "episodeId": 7264,
+  "seriesId": 72,
+  "sourceTitle": "Title 049",
+  "languages": [
+   {
+    "id": 1,
+    "name": "Title 029"
+   }
+  ],
+  "quality": {
+   "quality": {
+    "id": 3,
+    "name": "Title 010",
+    "source": "web",
+    "resolution": 1080
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [
+   {
+    "id": 65,
+    "name": "Title 011"
+   },
+   {
+    "id": 19,
+    "name": "Title 160"
+   },
+   {
+    "id": 9,
+    "name": "Title 161"
+   },
+   {
+    "id": 46,
+    "name": "Title 032"
+   },
+   {
+    "id": 10,
+    "name": "Title 146"
+   }
+  ],
+  "customFormatScore": 1850,
+  "qualityCutoffNotMet": false,
+  "date": "2026-09-18T18:14:03Z",
+  "downloadId": "469c208d-c2b5-47c8-abce-2beda77dbc08",
+  "eventType": "grabbed",
+  "data": {
+   "indexer": "NZBHydra2 (Prowlarr)",
+   "nzbInfoUrl": "REDACTED",
+   "releaseGroup": "Title 047",
+   "age": "25",
+   "ageHours": "601.5071607291111",
+   "ageMinutes": "36090.42964377",
+   "publishedDate": "2026-08-24T16:43:38Z",
+   "downloadClient": "SABnzbd",
+   "downloadClientName": "SABnzbd",
+   "size": "2175027181",
+   "downloadUrl": "REDACTED",
+   "guid": "REDACTED",
+   "tvdbId": "0",
+   "tvRageId": "0",
+   "imdbId": "0",
+   "protocol": "1",
+   "customFormatScore": "1850",
+   "seriesMatchType": "Title",
+   "releaseSource": "Search",
+   "indexerFlags": "0",
+   "releaseType": "SingleEpisode"
+  },
+  "id": 6121
+ }
+]

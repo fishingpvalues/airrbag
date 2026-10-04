@@ -1,0 +1,67 @@
+[
+ {
+  "artistId": 610,
+  "albumId": 28098,
+  "path": "/music/Title.001/Title.002.flac",
+  "size": 21492178,
+  "dateAdded": "2026-08-31T14:16:49Z",
+  "releaseGroup": "Title 003",
+  "qualityWeight": 23,
+  "customFormatScore": 0,
+  "indexerFlags": 0,
+  "qualityCutoffNotMet": false,
+  "id": 500164
+ },
+ {
+  "artistId": 610,
+  "albumId": 28098,
+  "path": "/music/Title.001/Title.004.flac",
+  "size": 21355081,
+  "dateAdded": "2026-08-31T14:16:49Z",
+  "releaseGroup": "Title 003",
+  "qualityWeight": 23,
+  "customFormatScore": 0,
+  "indexerFlags": 0,
+  "qualityCutoffNotMet": false,
+  "id": 500165
+ },
+ {
+  "artistId": 610,
+  "albumId": 28098,
+  "path": "/music/Title.001/Title.005.flac",
+  "size": 22134368,
+  "dateAdded": "2026-08-31T14:16:49Z",
+  "releaseGroup": "Title 003",
+  "qualityWeight": 23,
+  "customFormatScore": 0,
+  "indexerFlags": 0,
+  "qualityCutoffNotMet": false,
+  "id": 500166
+ },
+ {
+  "artistId": 610,
+  "albumId": 28098,
+  "path": "/music/Title.001/Title.006.flac",
+  "size": 16979715,
+  "dateAdded": "2026-08-31T14:16:50Z",
+  "releaseGroup": "Title 003",
+  "qualityWeight": 23,
+  "customFormatScore": 0,
+  "indexerFlags": 0,
+  "qualityCutoffNotMet": false,
+  "id": 500167
+ },
+ {
+  "artistId": 610,
+  "albumId": 28098,
+  "path": "/music/Title.001/Title.007.flac",
+  "size": 27569865,
+  "dateAdded": "2026-08-31T14:16:50Z",
+  "releaseGroup": "Title 003",
+  "qualityWeight": 23,
+  "customFormatScore": 0,
+  "indexerFlags": 0,
+  "qualityCutoffNotMet": false,
+  "id": 500168
+ }
+]
