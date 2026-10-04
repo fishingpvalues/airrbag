@@ -21,8 +21,12 @@ import (
 
 	"github.com/fishingpvalues/airrbag/internal/arr"
 	"github.com/fishingpvalues/airrbag/internal/clients"
+	"github.com/fishingpvalues/airrbag/internal/clients/deluge"
+	"github.com/fishingpvalues/airrbag/internal/clients/nzbhydra"
 	"github.com/fishingpvalues/airrbag/internal/clients/qbittorrent"
+	"github.com/fishingpvalues/airrbag/internal/clients/rtorrent"
 	"github.com/fishingpvalues/airrbag/internal/clients/sabnzbd"
+	"github.com/fishingpvalues/airrbag/internal/clients/transmission"
 	"github.com/fishingpvalues/airrbag/internal/config"
 	"github.com/fishingpvalues/airrbag/internal/egress"
 	"github.com/fishingpvalues/airrbag/internal/engine"
@@ -114,22 +118,52 @@ func logger(level string) *slog.Logger {
 
 // clientPool shares one client object per address across instances.
 type clientPool struct {
-	egress  *egress.Allowlist
-	mu      sync.Mutex
-	torrent map[string]clients.TorrentClient
-	usenet  map[string]clients.UsenetClient
+	egress   *egress.Allowlist
+	mu       sync.Mutex
+	torrent  map[string]clients.TorrentClient
+	usenet   map[string]clients.UsenetClient
+	indexers map[string]clients.IndexerHistory
 }
 
-func (p *clientPool) qbit(cfg config.Client, url string) clients.TorrentClient {
+// torrentClient returns the client object for a torrent client of the given
+// type (qbittorrent, transmission, deluge, rtorrent) at url.
+func (p *clientPool) torrentClient(typ string, cfg config.Client, url string) clients.TorrentClient {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	key := url + "|" + cfg.Username
+	key := typ + "|" + url + "|" + cfg.Username
 	if c, ok := p.torrent[key]; ok {
 		return c
 	}
 	_ = p.egress.Allow(url)
-	c := qbittorrent.New(url, cfg.Username, cfg.Password, 30*time.Second, p.egress.Transport(nil))
+	rt := p.egress.Transport(nil)
+	var c clients.TorrentClient
+	switch typ {
+	case "transmission":
+		c = transmission.New(url, cfg.Username, cfg.Password, 30*time.Second, rt)
+	case "deluge":
+		c = deluge.New(url, cfg.Password, 30*time.Second, rt)
+	case "rtorrent":
+		c = rtorrent.New(url, cfg.Username, cfg.Password, 30*time.Second, rt)
+	default:
+		c = qbittorrent.New(url, cfg.Username, cfg.Password, 30*time.Second, rt)
+	}
 	p.torrent[key] = c
+	return c
+}
+
+// indexer returns the NZBHydra2 history client at url.
+func (p *clientPool) indexer(cfg config.Client) clients.IndexerHistory {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if p.indexers == nil {
+		p.indexers = map[string]clients.IndexerHistory{}
+	}
+	if c, ok := p.indexers[cfg.URL]; ok {
+		return c
+	}
+	_ = p.egress.Allow(cfg.URL)
+	c := nzbhydra.New(cfg.URL, cfg.APIKey, cfg.Username, cfg.Password, 60*time.Second, p.egress.Transport(nil))
+	p.indexers[cfg.URL] = c
 	return c
 }
 
@@ -164,6 +198,12 @@ func matchClient(cfg *config.Config, name, typ string) (config.Client, bool) {
 	return config.Client{}, false
 }
 
+// arrTorrentTypes maps the *Arr's download-client implementation names to
+// Airrbag client types.
+var arrTorrentTypes = map[string]string{
+	"QBittorrent": "qbittorrent", "Transmission": "transmission", "Deluge": "deluge", "RTorrent": "rtorrent",
+}
+
 // discover maps the *Arr's download clients to working client objects.
 func discover(ctx context.Context, cfg *config.Config, c *arr.Client, pool *clientPool, log *slog.Logger) (map[string]clients.TorrentClient, map[string]clients.UsenetClient) {
 	tor := map[string]clients.TorrentClient{}
@@ -174,19 +214,21 @@ func discover(ctx context.Context, cfg *config.Config, c *arr.Client, pool *clie
 	}
 	seen := map[string]bool{}
 	for _, d := range dcs {
-		switch d.Implementation {
-		case "QBittorrent":
-			cc, ok := matchClient(cfg, d.Name, "qbittorrent")
+		if typ, ok := arrTorrentTypes[d.Implementation]; ok {
+			cc, ok := matchClient(cfg, d.Name, typ)
 			if !ok {
-				log.Warn("qBittorrent client in the *Arr has no credentials in airrbag.yml", "client", d.Name)
-				cc = config.Client{Name: d.Name, Type: "qbittorrent"}
+				log.Warn("torrent client in the *Arr has no credentials in airrbag.yml", "client", d.Name, "type", typ)
+				cc = config.Client{Name: d.Name, Type: typ}
 			}
 			u := cc.URL
 			if u == "" {
 				u = d.URL()
 			}
-			tor[d.Name] = pool.qbit(cc, u)
+			tor[d.Name] = pool.torrentClient(typ, cc, u)
 			seen[cc.Name] = true
+			continue
+		}
+		switch d.Implementation {
 		case "Sabnzbd":
 			cc, _ := matchClient(cfg, d.Name, "sabnzbd")
 			u := cc.URL
@@ -208,10 +250,10 @@ func discover(ctx context.Context, cfg *config.Config, c *arr.Client, pool *clie
 		if seen[cc.Name] || cc.URL == "" {
 			continue
 		}
-		switch cc.Type {
-		case "qbittorrent":
-			tor[cc.Name] = pool.qbit(cc, cc.URL)
-		case "sabnzbd":
+		switch config.ClientTypes[cc.Type] {
+		case "torrent":
+			tor[cc.Name] = pool.torrentClient(cc.Type, cc, cc.URL)
+		case "usenet":
 			use[cc.Name] = pool.sab(cc, cc.URL)
 		}
 	}
@@ -255,6 +297,7 @@ func serve(cfgPath string) error {
 	met.Describe("airrbag_guard_overridden_total", "counter", "Guarded DELETE requests let through by an override")
 	met.Describe("airrbag_guard_dryrun_total", "counter", "DELETE requests the guard would have blocked in dry-run mode")
 	met.Describe("airrbag_indexed_files", "gauge", "Library files with known provenance")
+	met.Describe("airrbag_unknown_deletes_total", "counter", "Deletes of files with unproven origin let through without a confirmation (guard.unknown confirm)")
 	mapper := paths.New(cfg.PathMappings)
 	// The only hosts this process may contact: the configured *Arr instances
 	// and the download clients added by discovery (clientPool.qbit/sab).
@@ -325,10 +368,24 @@ func startInstance(ctx context.Context, cfg *config.Config, inst config.Instance
 	log.Info("upstream detected", "app", ac.Shape.App, "version", ac.Status.Version, "urlBase", ac.Status.URLBase)
 
 	tor, use := discover(ctx, cfg, ac, pool, log)
+	var indexers []engine.NamedIndexer
+	var direct []engine.DirectSource
+	for _, cc := range cfg.Clients {
+		switch cc.Type {
+		case "nzbhydra2":
+			indexers = append(indexers, engine.NamedIndexer{Name: cc.Name, History: pool.indexer(cc)})
+		case "xunlei":
+			name := cc.Name
+			if name == "" {
+				name = "Xunlei"
+			}
+			direct = append(direct, engine.DirectSource{Name: name, Root: cc.Path})
+		}
+	}
 	eng := engine.New(engine.Options{
-		Instance: inst.Name, Arr: ac, Torrent: tor, Usenet: use, Mapper: mapper, Trackers: reg,
-		Stat: fsx.OS{}, FailClosed: cfg.Guard.FailClosedEnabled(), TTL: cfg.CacheTTL.Duration,
-		HistoryLimit: cfg.HistoryLimit, Log: log,
+		Instance: inst.Name, Arr: ac, Torrent: tor, Usenet: use, Indexers: indexers, Direct: direct,
+		Mapper: mapper, Trackers: reg, Stat: fsx.OS{}, FailClosed: cfg.Guard.FailClosedEnabled(),
+		UnknownMode: cfg.Guard.UnknownMode(), TTL: cfg.CacheTTL.Duration, HistoryLimit: cfg.HistoryLimit, Log: log,
 	})
 	health := healthFunc(tor, use)
 	g.set(proxy.New(proxy.Options{

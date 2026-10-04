@@ -15,6 +15,12 @@ type Provenance struct {
 	InfoHash   string    `json:"infoHash,omitempty"`
 	GrabbedAt  time.Time `json:"grabbedAt,omitempty"`
 	ImportedAt time.Time `json:"importedAt,omitempty"`
+	// SourceTitle is the release name of the import (or grab).
+	SourceTitle string `json:"sourceTitle,omitempty"`
+	// DroppedPath is where the *Arr imported the file from (its own view).
+	DroppedPath string `json:"droppedPath,omitempty"`
+	// Recorded is true when history has an import event for the file.
+	Recorded bool `json:"recorded"`
 }
 
 var infoHashRE = regexp.MustCompile(`^[0-9a-fA-F]{40}$|^[0-9a-fA-F]{64}$`)
@@ -75,22 +81,15 @@ func NewIndex(records []HistoryRecord) *Index {
 	idx := &Index{byFile: make(map[int]Provenance, len(imports))}
 	for id, im := range imports {
 		r := im.rec
-		p := Provenance{DownloadID: r.DownloadID, ImportedAt: r.Date}
+		p := Provenance{DownloadID: r.DownloadID, ImportedAt: r.Date, SourceTitle: r.SourceTitle,
+			DroppedPath: r.D("droppedPath"), Recorded: true}
 		p.Client = r.D("downloadClientName")
 		if p.Client == "" {
 			p.Client = r.D("downloadClient")
 		}
 		proto := ""
 		if g, ok := grabs[strings.ToUpper(r.DownloadID)]; ok && r.DownloadID != "" {
-			p.Indexer = g.D("indexer")
-			p.GrabbedAt = g.Date
-			proto = g.D("protocol")
-			p.InfoHash = g.D("torrentInfoHash")
-			if c := g.D("downloadClientName"); c != "" {
-				p.Client = c
-			} else if p.Client == "" {
-				p.Client = g.D("downloadClient")
-			}
+			proto = p.applyGrab(g)
 		}
 		p.Protocol = NormalizeProtocol(proto, r.DownloadID)
 		if p.InfoHash == "" && p.Protocol == "torrent" && infoHashRE.MatchString(r.DownloadID) {
@@ -129,4 +128,21 @@ func (i *Index) Merge(other *Index) {
 			i.byFile[k] = v
 		}
 	}
+}
+
+// applyGrab copies what the matching grab event knows into p and returns
+// the protocol the grab recorded.
+func (p *Provenance) applyGrab(g HistoryRecord) string {
+	p.Indexer = g.D("indexer")
+	p.GrabbedAt = g.Date
+	if p.SourceTitle == "" {
+		p.SourceTitle = g.SourceTitle
+	}
+	p.InfoHash = g.D("torrentInfoHash")
+	if c := g.D("downloadClientName"); c != "" {
+		p.Client = c
+	} else if p.Client == "" {
+		p.Client = g.D("downloadClient")
+	}
+	return g.D("protocol")
 }

@@ -159,6 +159,10 @@ type File struct {
 	Path         string `json:"path"`
 	RelativePath string `json:"relativePath"`
 	Size         int64  `json:"size"`
+	// SceneName is the release name the file was imported as (Sonarr,
+	// Radarr), OriginalFilePath its path inside the download folder.
+	SceneName        string `json:"sceneName,omitempty"`
+	OriginalFilePath string `json:"originalFilePath,omitempty"`
 }
 
 // rawFile decodes any of the per-app file shapes.
@@ -167,6 +171,8 @@ type rawFile struct {
 	Path         string `json:"path"`
 	RelativePath string `json:"relativePath"`
 	Size         int64  `json:"size"`
+	SceneName    string `json:"sceneName"`
+	OriginalPath string `json:"originalFilePath"`
 	MovieID      int    `json:"movieId"`
 	SeriesID     int    `json:"seriesId"`
 	ArtistID     int    `json:"artistId"`
@@ -180,7 +186,8 @@ func (r rawFile) file() File {
 			pid = v
 		}
 	}
-	return File{ID: r.ID, ParentID: pid, Path: r.Path, RelativePath: r.RelativePath, Size: r.Size}
+	return File{ID: r.ID, ParentID: pid, Path: r.Path, RelativePath: r.RelativePath, Size: r.Size,
+		SceneName: r.SceneName, OriginalFilePath: r.OriginalPath}
 }
 
 // Files lists the files of one parent (movie, series, artist, author).
@@ -255,10 +262,11 @@ func (c *Client) Parents(ctx context.Context) ([]Parent, error) {
 // HistoryRecord is one history event. Data values are strings in every app,
 // but decoded as any to survive nulls.
 type HistoryRecord struct {
-	EventType  string         `json:"eventType"`
-	DownloadID string         `json:"downloadId"`
-	Date       time.Time      `json:"date"`
-	Data       map[string]any `json:"data"`
+	EventType   string         `json:"eventType"`
+	SourceTitle string         `json:"sourceTitle"`
+	DownloadID  string         `json:"downloadId"`
+	Date        time.Time      `json:"date"`
+	Data        map[string]any `json:"data"`
 }
 
 // D returns a data field as a string.

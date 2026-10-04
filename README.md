@@ -122,25 +122,34 @@ For each file:
 1. The *Arr history links the file to its download. The import event carries
    the file id; the grab event carries the protocol, indexer, client and
    download id, which for a torrent is its info hash.
-2. qBittorrent is asked for that torrent: private flag, trackers, ratio,
-   seeding time, files. A torrent seeding straight from the library is also
-   found by path when the history no longer mentions it.
+2. The torrent client is asked for that torrent: private flag, trackers,
+   ratio, seeding time, files. A torrent seeding straight from the library is
+   also found by path when the history no longer mentions it.
 3. The library file and the torrent's files are stat'ed. Same device and inode
    means hardlink; the library path inside the torrent's content path means
    the same file.
 4. The tracker's rule decides whether the seed is still owed.
+5. When the history has no record of the file, airrbag looks for evidence
+   elsewhere, strongest first: the same bytes (inode) as any torrent's file
+   or a file in a direct-download folder; the folder the *Arr imported it
+   from (a torrent's content or SABnzbd's finished folder); the release name
+   in SABnzbd's history, NZBHydra2's download history, a direct-download
+   folder or the torrent names. Each verdict lists the chain in `evidence`.
 
 | Verdict | Meaning | Delete |
 |---------|---------|--------|
 | `keep` | private seed still owed, and the delete removes its data | refused, unless confirmed |
 | `frees-nothing` | hardlink of a running seed | allowed, the UI says no space is freed |
 | `safe` | Usenet, separate copy, finished or removed torrent | allowed |
-| `unknown` | no history, or a client could not be asked | allowed |
+| `unknown` | no evidence of where the file came from | per `guard.unknown`: ask (default), refuse or allow |
 
-A private torrent from a private indexer whose client cannot be reached counts
-as `keep` while `guard.fail_closed` is on (the default). A private torrent
-that no rule covers and that has no `trackers.default` is never considered
-done.
+**Torrent evidence is never `unknown`.** A file that history, a private
+indexer, a tracker, an inode or a name ties to a torrent, but whose seed
+status cannot be checked (client down, files unreadable), is `keep`. Only a
+file with no evidence at all is `unknown`.
+
+A private torrent that no rule covers and that has no `trackers.default` is
+never considered done.
 
 ### In the UI
 
@@ -180,7 +189,9 @@ any client that shows *Arr errors shows a useful line:
 ```
 
 If the check itself cannot run (the *Arr or a client does not answer) and
-`guard.fail_closed` is on, the answer is `503`. Nothing else is ever blocked.
+`guard.fail_closed` is on, the answer is `503`. With `guard.unknown: block`,
+deletes of files with no provenance evidence are refused as well. Nothing else
+is ever blocked.
 
 API clients can override deliberately with `X-Airrbag-Override: <reason>`.
 The reason is logged.
@@ -218,10 +229,11 @@ anywhere in the file is replaced with the environment variable `NAME`.
 | `instances[].api_key` | required | The *Arr's API key |
 | `instances[].app` | `auto` | `sonarr`, `radarr`, `lidarr`, `readarr`, `whisparr` |
 | `clients[].name` | | The client's name in the *Arr |
-| `clients[].type` | required | `qbittorrent` or `sabnzbd` |
-| `clients[].url` | discovered | Overrides the address read from the *Arr |
-| `clients[].username`, `.password` | | qBittorrent WebUI login |
-| `clients[].api_key` | | SABnzbd API key |
+| `clients[].type` | required | `qbittorrent`, `transmission`, `deluge`, `rtorrent`, `sabnzbd`, `nzbhydra2`, `xunlei` |
+| `clients[].url` | discovered | Overrides the address read from the *Arr. Required for `nzbhydra2` |
+| `clients[].username`, `.password` | | qBittorrent, Transmission, rTorrent login; Deluge Web UI password; NZBHydra2 basic auth |
+| `clients[].api_key` | | SABnzbd API key; NZBHydra2 main API key (optional) |
+| `clients[].path` | | `xunlei`: its download folder, as airrbag sees it |
 | `path_mappings[]` | | `from`, `to`, `source`: `arr`, `client` or a client name |
 | `trackers.file` | | Roster JSON: `trackers[].domains`, `announce_domains`, `fragments` |
 | `trackers.private[]` | | Extra private domains or indexer-name fragments |
@@ -229,7 +241,8 @@ anywhere in the file is replaced with the environment variable `NAME`.
 | `trackers.default` | none | Rule for private torrents no rule matches |
 | `guard.enabled` | `true` | Refuse deletes of `keep` files |
 | `guard.dry_run` | `false` | Log instead of refusing |
-| `guard.fail_closed` | `true` | Private indexer with an unreachable client counts as `keep` |
+| `guard.fail_closed` | `true` | A check that cannot run (an *Arr or client error) answers 503 |
+| `guard.unknown` | `confirm` | Delete of a file with no provenance evidence: `confirm` asks once in the UI and lets API callers through with a WARN and `airrbag_unknown_deletes_total`; `block` refuses (409) without a grant; `allow` only shows the badge |
 | `guard.grant_ttl` | `2m` | Lifetime of a confirmation given in the dialog |
 | `cache_ttl` | `5m` | History index and verdict cache lifetime |
 | `history_limit` | `100000` | History records indexed per instance |
@@ -272,8 +285,23 @@ if code bypasses it.
 
 Tested in CI against pinned images of Radarr 6, Sonarr 4 and Lidarr 3, one job
 each. Readarr and Whisparr use the same code paths (Whisparr 2 as Sonarr,
-Whisparr 3 as Radarr) without an integration job yet. qBittorrent 4.6 and 5.x;
-SABnzbd 4.
+Whisparr 3 as Radarr) without an integration job yet.
+
+| Source | How | Discovered from the *Arr | Gives |
+|--------|-----|--------------------------|-------|
+| qBittorrent 4.6, 5.x | WebUI API v2 | yes | torrents, private flag, trackers, ratio, seeding time, files |
+| Transmission 3, 4 | RPC (`torrent-get`) | yes | same |
+| Deluge 2 | Web UI JSON-RPC | yes | same |
+| rTorrent 0.9+ | XML-RPC over HTTP (RPC2, ruTorrent httprpc) | yes | same |
+| SABnzbd 4 | API | yes | job by id, full history, finished folders |
+| NZBHydra2 | download history (external or internal API) | no, configure `url` | which release an *Arr grabbed, NZB or torrent, from which indexer |
+| Xunlei | its download folder (`path`) | no | files it downloaded, by inode and name |
+
+Xunlei (Thunder, for example the `cnk3x/xunlei` image) has no stable API: its
+web UI is the Synology package's, behind a token scraped from the page that
+changes between releases, so airrbag reads its download folder instead. Its
+files have no swarm to owe anything to. Xunlei is banned on private trackers;
+a torrent it fetched was never a private seed of yours.
 
 ## Versioning
 
@@ -293,9 +321,11 @@ Pin a version in production; `latest` moves.
 `curl http://<listener>/__airrbag/health` shows the detected app and whether
 each download client answers.
 
-**Everything is `unknown`.** The files were imported before the history the
-*Arr kept, or by hand. A torrent seeding from the library path is still found
-by path.
+**Many files are `unknown`.** They were imported before the history the *Arr
+kept, by hand, or by another tool, and nothing else ties them to a download.
+`evidence` on each file says what was checked. Adding the Usenet client,
+NZBHydra2 or the direct-download folder gives airrbag more to match;
+`guard.unknown` decides how deletes of the rest are handled.
 
 **`frees-nothing` and `safe` look wrong.** The paths are not mapped. Compare
 `path` in `/__airrbag/api/files?parentId=<id>` with where the file is inside
@@ -323,6 +353,9 @@ Under each listener, next to the proxied *Arr. Requires *Arr credentials.
 | `GET /__airrbag/api/dashboard/settings` | Effective configuration, redacted |
 | `GET /__airrbag/api/dashboard/clients?fresh=1` | Download-client connectivity |
 | `GET /__airrbag/api/dashboard/system` | Version, uptime, instances |
+
+The file verdict JSON, the 409 body and the override rules are in
+[`docs/API.md`](docs/API.md).
 
 ## Development
 
@@ -356,7 +389,7 @@ Report security issues through
 
 ## Roadmap
 
-- Transmission, Deluge and NZBGet clients
+- NZBGet
 - Integration jobs for Readarr and Whisparr
 - Proposing upstream that the *Arrs store protocol and indexer on each file
 

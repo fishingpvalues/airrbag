@@ -34,8 +34,9 @@ const (
 	FreesNothing Kind = "frees-nothing"
 	// Safe: deleting frees the space and harms no seed obligation.
 	Safe Kind = "safe"
-	// Unknown: not enough information. The guard treats a private-looking
-	// unknown as Keep when fail-closed is on.
+	// Unknown: Airrbag could not prove where the file came from. What a
+	// delete of it does is the guard's unknown mode (confirm, block, allow).
+	// A file with any torrent evidence is never Unknown: it is Keep.
 	Unknown Kind = "unknown"
 )
 
@@ -45,6 +46,9 @@ type Protocol string
 const (
 	ProtoUsenet  Protocol = "usenet"
 	ProtoTorrent Protocol = "torrent"
+	// ProtoDirect is a plain download with no swarm to owe anything to
+	// (Xunlei's HTTP/cloud downloads, a configured direct-download folder).
+	ProtoDirect  Protocol = "direct"
 	ProtoUnknown Protocol = "unknown"
 )
 
@@ -87,6 +91,12 @@ type Input struct {
 	// ClientUnreachable is true when the torrent client could not be asked.
 	ClientUnreachable bool
 	FailClosed        bool
+	// TorrentEvidence is true when anything points at a torrent origin
+	// (history, a private indexer, a tracker, a torrent with the same name
+	// or bytes) even though the torrent itself could not be examined.
+	TorrentEvidence bool
+	// DirectSource names the direct-download source for ProtoDirect.
+	DirectSource string
 }
 
 // Result is the verdict plus the facts behind it, for badges and tooltips.
@@ -100,7 +110,21 @@ type Result struct {
 }
 
 // Decide applies the rules. It never touches the filesystem or the network.
+//
+// The final rule is the important one: an Unknown verdict with any torrent
+// evidence becomes Keep. A torrent download whose seed status cannot be seen
+// must never be deletable without a deliberate override; only a file with no
+// evidence at all stays Unknown.
 func Decide(in Input) Result {
+	res := decide(in)
+	if res.Verdict == Unknown && (in.TorrentEvidence || in.PrivateIndexer || in.Protocol == ProtoTorrent || in.Torrent != nil) {
+		res.Verdict = Keep
+		res.Reasons = append(res.Reasons, "there is torrent evidence but its seeding obligation cannot be checked: keeping")
+	}
+	return res
+}
+
+func decide(in Input) Result {
 	res := Result{Protocol: in.Protocol, Relation: "unknown"}
 	if !in.File.Exists {
 		res.Verdict = Safe
@@ -119,6 +143,12 @@ func Decide(in Input) Result {
 	switch in.Protocol {
 	case ProtoUsenet:
 		return decideUnshared(res, in, "downloaded over Usenet: no seeding obligation")
+	case ProtoDirect:
+		src := in.DirectSource
+		if src == "" {
+			src = "a direct downloader"
+		}
+		return decideUnshared(res, in, "downloaded by "+src+": no swarm, no seeding obligation")
 	case ProtoTorrent:
 		return decideTorrent(res, in)
 	default:

@@ -98,9 +98,31 @@ func TestDecide(t *testing.T) {
 			want: Keep, relation: "unknown", private: true,
 		},
 		{
-			name: "client unreachable, public indexer: unknown",
+			// Torrent evidence (history says torrent) whose seed cannot be seen
+			// is never left as unknown.
+			name: "client unreachable, public indexer: torrent evidence keeps",
 			in:   Input{Path: "/lib/a.mkv", File: lib, Protocol: ProtoTorrent, ClientUnreachable: true, FailClosed: true},
+			want: Keep, relation: "unknown",
+		},
+		{
+			name: "no evidence at all: unknown",
+			in:   Input{Path: "/lib/a.mkv", File: lib, Protocol: ProtoUnknown},
 			want: Unknown, relation: "unknown",
+		},
+		{
+			name: "no protocol but a torrent hint (name or inode scan): keep",
+			in:   Input{Path: "/lib/a.mkv", File: lib, Protocol: ProtoUnknown, TorrentEvidence: true},
+			want: Keep, relation: "unknown",
+		},
+		{
+			name: "no protocol but a private indexer named in history: keep",
+			in:   Input{Path: "/lib/a.mkv", File: lib, Protocol: ProtoUnknown, PrivateIndexer: true},
+			want: Keep, relation: "unknown",
+		},
+		{
+			name: "direct download (xunlei folder): safe",
+			in:   Input{Path: "/lib/a.mkv", File: lib, Protocol: ProtoDirect, DirectSource: "xunlei"},
+			want: Safe, relation: "none",
 		},
 		{
 			name: "no history but torrent found by path: treated as torrent",
