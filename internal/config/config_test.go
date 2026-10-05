@@ -132,6 +132,10 @@ func TestLibtorrentResumeValidation(t *testing.T) {
 		"  - {name: r, type: libtorrent-resume, path: /t, layout: torrents, save_path: /data}\n": true,
 		"  - {name: r, type: libtorrent-resume}\n":                                               false,
 		"  - {name: r, type: libtorrent-resume, path: /t, layout: torrents}\n":                   false,
+		"  - {name: r, type: qbittorrent-sqlite, path: /q/torrents.db, tmp_dir: /tmp}\n":         true,
+		"  - {name: r, type: qbittorrent-sqlite}\n":                                              false,
+		"  - {name: r, type: qbittorrent-resume, path: /qbt, live: qb, stale_after: 12h}\n":      true,
+		"  - {name: r, type: qbittorrent-resume}\n":                                              false,
 		"  - {name: r, type: libtorrent-resume, path: /t, layout: sqlite}\n":                     false,
 	} {
 		_, err := Parse([]byte(base + in))

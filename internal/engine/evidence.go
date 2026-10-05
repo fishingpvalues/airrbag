@@ -169,6 +169,12 @@ func (e *Engine) indexTorrents(ctx context.Context, ev *evidence, budget *int) {
 			ev.torrentsErr = append(ev.torrentsErr, n)
 			continue
 		}
+		if d, ok := e.o.Torrent[n].(clients.Degradable); ok {
+			if bad, why := d.Degraded(); bad {
+				// Matches still count; the absence of one proves nothing.
+				ev.torrentsErr = append(ev.torrentsErr, n+" (stale: "+why+")")
+			}
+		}
 		src := paths.Source{Kind: "client", Name: n}
 		for h, t := range s.torrents {
 			ref := torrentRef{client: n, hash: h}

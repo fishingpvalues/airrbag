@@ -74,6 +74,25 @@ type Client struct {
 	Layout string `yaml:"layout"`
 	// SavePath is where the data of a "torrents" layout lies, client view.
 	SavePath string `yaml:"save_path"`
+	// TmpDir is where a qbittorrent-sqlite source copies the database before
+	// reading it (default: the system temp folder; mount a tmpfs there when
+	// the root filesystem is read-only).
+	TmpDir string `yaml:"tmp_dir"`
+	// Live names the qBittorrent client a qbittorrent-resume source asks for
+	// its storage type and compares torrent counts with (default: the only
+	// qBittorrent client, if there is exactly one).
+	Live string `yaml:"live"`
+	// StaleAfter: with no live client to compare with, a resume store
+	// unchanged this long is reported as degraded (default 24h).
+	StaleAfter Duration `yaml:"stale_after"`
+}
+
+// needsPath lists the client types that read from disk, with what path is.
+var needsPath = map[string]string{
+	"xunlei":             "its download folder",
+	"qbittorrent-resume": "qBittorrent's config folder",
+	"qbittorrent-sqlite": "qBittorrent's torrents.db",
+	"libtorrent-resume":  "the resume folder, e.g. qBittorrent's BT_backup",
 }
 
 // ClientTypes are the supported values of Client.Type.
@@ -85,9 +104,15 @@ var ClientTypes = map[string]string{
 	// libtorrent-resume reads a client's resume files from disk, read-only:
 	// evidence that still answers when the client's API is down.
 	"libtorrent-resume": "torrent",
-	"sabnzbd":           "usenet",
-	"nzbhydra2":         "indexer",
-	"xunlei":            "direct",
+	// qbittorrent-sqlite reads qBittorrent's SQLite resume storage
+	// (torrents.db) from a snapshot copy, read-only on the live file.
+	"qbittorrent-sqlite": "torrent",
+	// qbittorrent-resume finds out how qBittorrent stores resume data
+	// (BT_backup or torrents.db) and reads that store.
+	"qbittorrent-resume": "torrent",
+	"sabnzbd":            "usenet",
+	"nzbhydra2":          "indexer",
+	"xunlei":             "direct",
 }
 
 // PathMapping is one prefix rewrite. Source is "arr", "client" or a client
@@ -423,17 +448,13 @@ func (c *Config) validateClients() []error {
 	for i, cl := range c.Clients {
 		p := fmt.Sprintf("clients[%d]", i)
 		if _, ok := ClientTypes[cl.Type]; !ok {
-			errs = append(errs, fmt.Errorf("%s: type must be one of qbittorrent, transmission, deluge, rtorrent, libtorrent-resume, sabnzbd, nzbhydra2, xunlei", p))
+			errs = append(errs, fmt.Errorf("%s: type must be one of qbittorrent, transmission, deluge, rtorrent, libtorrent-resume, qbittorrent-sqlite, qbittorrent-resume, sabnzbd, nzbhydra2, xunlei", p))
+		}
+		if what, ok := needsPath[cl.Type]; ok && cl.Path == "" {
+			errs = append(errs, fmt.Errorf("%s: %s needs path (%s)", p, cl.Type, what))
 		}
 		switch cl.Type {
-		case "xunlei":
-			if cl.Path == "" {
-				errs = append(errs, fmt.Errorf("%s: xunlei needs path (its download folder)", p))
-			}
 		case "libtorrent-resume":
-			if cl.Path == "" {
-				errs = append(errs, fmt.Errorf("%s: libtorrent-resume needs path (the resume folder, e.g. qBittorrent's BT_backup)", p))
-			}
 			switch cl.Layout {
 			case "", "auto", "qbittorrent", "deluge":
 			case "torrents":

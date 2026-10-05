@@ -93,8 +93,9 @@ tracker rules and the guard's modes, is in
 
 - **\*Arrs**: Radarr, Sonarr, Lidarr, Readarr, Whisparr
 - **Torrent clients**: qBittorrent 4.1 to 5.x, Transmission 3 and 4, Deluge 2,
-  rTorrent 0.9+, and libtorrent resume files read from disk (qBittorrent,
-  Deluge) for when a client's API is down or missing
+  rTorrent 0.9+, and resume data read from disk for when a client's API is
+  down or missing: qBittorrent's `BT_backup` or SQLite `torrents.db`
+  (detected automatically), Deluge's `state`
 - **Usenet and more**: SABnzbd 4, NZBHydra2's download history, Xunlei by
   its download folder
 

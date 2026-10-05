@@ -38,6 +38,15 @@ type TorrentClient interface {
 	Trackers(ctx context.Context, hash string) ([]string, error)
 }
 
+// Degradable is implemented by sources that can answer but know their
+// answer may be out of date (an offline resume store older than the live
+// client). The engine still uses their matches as evidence, but treats them
+// like an unreachable client when nothing matches: a stale source must never
+// make a file look safe.
+type Degradable interface {
+	Degraded() (bool, string)
+}
+
 // SeedTimer is implemented by clients whose list call may lack the seeding
 // time; it reads it for one torrent.
 type SeedTimer interface {

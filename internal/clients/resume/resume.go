@@ -9,13 +9,16 @@
 //   - qbittorrent: BT_backup/<hash>.fastresume (+ <hash>.torrent). Save path
 //     from "qBt-savePath" or "save_path"; seeding time, uploaded and
 //     downloaded bytes and trackers from the resume data.
+//
 //   - deluge: state/torrents.fastresume (a dictionary of hash -> resume
 //     data) + state/<hash>.torrent.
+//
 //   - torrents: a folder of .torrent files whose data lies under save_path.
 //     There is no resume data, so seeding time is unknown and an obligation
 //     reads as not met (fail closed).
 //
-// qBittorrent's optional SQLite resume storage (torrents.db) is not read.
+//   - qbittorrent-sqlite: qBittorrent's SQLite resume storage (torrents.db,
+//     ResumeDataStorageType=SQLite), read from a snapshot copy; see sqlite.go.
 package resume
 
 import (
@@ -55,6 +58,14 @@ type Client struct {
 	mu    sync.Mutex
 	cache map[string]cached // file path -> parsed, keyed by mtime+size
 	last  map[string]entry  // hash -> entry, from the last Snapshot
+
+	// qbittorrent-sqlite only.
+	tmpDir      string
+	minInterval time.Duration
+	sqlEntries  map[string]entry
+	sqlDB       fileStamp
+	sqlWAL      fileStamp
+	sqlAt       time.Time
 }
 
 type cached struct {
@@ -116,6 +127,8 @@ func (c *Client) Snapshot(ctx context.Context) (map[string]clients.Torrent, erro
 		entries, err = c.scanDeluge(ctx)
 	case Torrents:
 		entries, err = c.scanTorrents(ctx)
+	case SQLite:
+		entries, err = c.scanSQLite(ctx)
 	default:
 		return nil, fmt.Errorf("resume: unknown layout %q", layout)
 	}
