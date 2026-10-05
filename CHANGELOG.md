@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.1](https://github.com/fishingpvalues/airrbag/compare/v0.4.0...v0.4.1) (2026-10-05)
+
+
+### Bug Fixes
+
+* **guard:** ask for unknown files, fail closed when a client is down ([#13](https://github.com/fishingpvalues/airrbag/issues/13)) ([e8ca761](https://github.com/fishingpvalues/airrbag/commit/e8ca761b8cf6af8a16d514b5db6b42aeef1eef78))
+
 ## [0.4.0](https://github.com/fishingpvalues/airrbag/compare/v0.3.1...v0.4.0) (2026-10-04)
 
 
