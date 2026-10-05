@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.0](https://github.com/fishingpvalues/airrbag/compare/v0.5.0...v0.6.0) (2026-10-05)
+
+
+### Features
+
+* **resume:** read qBittorrent's SQLite store, detect the live one ([#17](https://github.com/fishingpvalues/airrbag/issues/17)) ([91f11ca](https://github.com/fishingpvalues/airrbag/commit/91f11ca27736c31d7176536d91a264656e271999))
+
 ## [0.5.0](https://github.com/fishingpvalues/airrbag/compare/v0.4.1...v0.5.0) (2026-10-05)
 
 
