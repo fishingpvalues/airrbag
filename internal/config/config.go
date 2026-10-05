@@ -66,8 +66,14 @@ type Client struct {
 	Password string `yaml:"password" secret:"true"`
 	APIKey   string `yaml:"api_key" secret:"true"`
 	// Path is the download folder of a client without a usable API
-	// (xunlei), in Airrbag's filesystem view.
+	// (xunlei), or the resume folder of a libtorrent-resume source, in
+	// Airrbag's filesystem view.
 	Path string `yaml:"path"`
+	// Layout of a libtorrent-resume folder: auto (default), qbittorrent,
+	// deluge or torrents.
+	Layout string `yaml:"layout"`
+	// SavePath is where the data of a "torrents" layout lies, client view.
+	SavePath string `yaml:"save_path"`
 }
 
 // ClientTypes are the supported values of Client.Type.
@@ -76,9 +82,12 @@ var ClientTypes = map[string]string{
 	"transmission": "torrent",
 	"deluge":       "torrent",
 	"rtorrent":     "torrent",
-	"sabnzbd":      "usenet",
-	"nzbhydra2":    "indexer",
-	"xunlei":       "direct",
+	// libtorrent-resume reads a client's resume files from disk, read-only:
+	// evidence that still answers when the client's API is down.
+	"libtorrent-resume": "torrent",
+	"sabnzbd":           "usenet",
+	"nzbhydra2":         "indexer",
+	"xunlei":            "direct",
 }
 
 // PathMapping is one prefix rewrite. Source is "arr", "client" or a client
@@ -414,12 +423,25 @@ func (c *Config) validateClients() []error {
 	for i, cl := range c.Clients {
 		p := fmt.Sprintf("clients[%d]", i)
 		if _, ok := ClientTypes[cl.Type]; !ok {
-			errs = append(errs, fmt.Errorf("%s: type must be one of qbittorrent, transmission, deluge, rtorrent, sabnzbd, nzbhydra2, xunlei", p))
+			errs = append(errs, fmt.Errorf("%s: type must be one of qbittorrent, transmission, deluge, rtorrent, libtorrent-resume, sabnzbd, nzbhydra2, xunlei", p))
 		}
 		switch cl.Type {
 		case "xunlei":
 			if cl.Path == "" {
 				errs = append(errs, fmt.Errorf("%s: xunlei needs path (its download folder)", p))
+			}
+		case "libtorrent-resume":
+			if cl.Path == "" {
+				errs = append(errs, fmt.Errorf("%s: libtorrent-resume needs path (the resume folder, e.g. qBittorrent's BT_backup)", p))
+			}
+			switch cl.Layout {
+			case "", "auto", "qbittorrent", "deluge":
+			case "torrents":
+				if cl.SavePath == "" {
+					errs = append(errs, fmt.Errorf("%s: layout torrents needs save_path", p))
+				}
+			default:
+				errs = append(errs, fmt.Errorf("%s: layout must be auto, qbittorrent, deluge or torrents", p))
 			}
 		case "nzbhydra2":
 			if cl.URL == "" {

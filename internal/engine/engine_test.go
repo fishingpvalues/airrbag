@@ -269,3 +269,65 @@ func TestResolveAlbumWithoutAlbums(t *testing.T) {
 		t.Fatalf("app without albums: ok=%v err=%v", ok, err)
 	}
 }
+
+// oldQB is a qBittorrent before 4.4: torrents/info carries no seeding time,
+// only torrents/properties does.
+type oldQB struct {
+	fakeQB
+	seeding map[string]time.Duration
+	calls   int
+}
+
+func (q *oldQB) SeedingTime(_ context.Context, h string) (time.Duration, error) {
+	q.calls++
+	return q.seeding[h], nil
+}
+
+func TestEngineSeedingTimeFromProperties(t *testing.T) {
+	dir := setup(t)
+	seedFile := filepath.Join(dir, "seed/Pack/a.mkv")
+	write(t, seedFile)
+	const h = "5555555555555555555555555555555555555555"
+	fa := &fakeArr{files: map[int][]arr.File{1: {{ID: 1, ParentID: 1, Path: seedFile}}}, history: hist(1, h, "2", "PrivTracker")}
+	for _, c := range []struct {
+		seeded time.Duration
+		want   verdict.Kind
+	}{{100 * time.Hour, verdict.Safe}, {time.Hour, verdict.Keep}} {
+		qb := &oldQB{fakeQB: fakeQB{
+			torrents: map[string]clients.Torrent{h: {Hash: h, Private: ptr(true), Tracker: "https://tracker.private.example/a",
+				SeedingTimeUnknown: true, ContentPath: filepath.Join(dir, "seed/Pack")}},
+			files: map[string][]string{h: {seedFile}},
+		}, seeding: map[string]time.Duration{h: c.seeded}}
+		e := New(Options{Arr: fa, Torrent: map[string]clients.TorrentClient{"qB": qb}, Trackers: registry(t)})
+		got, _ := e.ParentFiles(context.Background(), 1)
+		if got[0].Verdict != c.want || qb.calls == 0 {
+			t.Fatalf("seeded %v: got %s (calls %d) %v", c.seeded, got[0].Verdict, qb.calls, got[0].Reasons)
+		}
+		if got[0].SeedingTime == nil || *got[0].SeedingTime != int64(c.seeded/time.Second) {
+			t.Fatalf("seeding time not reported: %v", got[0].SeedingTime)
+		}
+	}
+}
+
+// The live client is down, but its resume files on disk still prove the
+// library file is the seeding data of a private torrent: the verdict says
+// so, instead of the vaguer "client unreachable".
+func TestEngineResumeEvidenceWhileClientDown(t *testing.T) {
+	dir := setup(t)
+	seedFile := filepath.Join(dir, "seed/Pack/a.mkv")
+	write(t, seedFile)
+	const h = "6666666666666666666666666666666666666666"
+	fa := &fakeArr{files: map[int][]arr.File{1: {{ID: 1, ParentID: 1, Path: seedFile}}}, history: hist(1, h, "2", "PrivTracker")}
+	down := &fakeQB{err: errors.New("connection refused")}
+	disk := &fakeQB{
+		torrents: map[string]clients.Torrent{h: {Hash: h, Name: "Pack", Private: ptr(true),
+			Tracker: "https://tracker.private.example/a", SeedingTime: time.Hour, ContentPath: filepath.Join(dir, "seed/Pack")}},
+		files: map[string][]string{h: {seedFile}},
+	}
+	e := New(Options{Arr: fa, Torrent: map[string]clients.TorrentClient{"qB": down, "qB resume": disk},
+		Trackers: registry(t), FailClosed: true})
+	got, _ := e.ParentFiles(context.Background(), 1)
+	if got[0].Verdict != verdict.Keep || got[0].Cause != verdict.CauseSeedsFromFile {
+		t.Fatalf("want keep/seeds-from-file, got %s/%s %v", got[0].Verdict, got[0].Cause, got[0].Reasons)
+	}
+}

@@ -542,41 +542,7 @@ func (e *Engine) attachTorrent(ctx context.Context, in *verdict.Input, fv *FileV
 		}
 		return
 	}
-	var (
-		name   string
-		c      clients.TorrentClient
-		t      clients.Torrent
-		found  bool
-		failed []string
-	)
-	// By info hash first, across every client; then by path (seed in place
-	// without, or beyond, *Arr history).
-	for pass := 0; pass < 2 && !found; pass++ {
-		for _, n := range names {
-			cl := e.o.Torrent[n]
-			s := e.snapshot(ctx, n, cl)
-			if s.err != nil {
-				if pass == 0 {
-					failed = append(failed, n)
-				}
-				continue
-			}
-			if pass == 0 {
-				if prov.InfoHash == "" {
-					continue
-				}
-				if tt, ok := s.torrents[prov.InfoHash]; ok {
-					name, c, t, found = n, cl, tt, true
-					break
-				}
-				continue
-			}
-			if h, ok := s.findByContent(in.Path); ok {
-				name, c, t, found = n, cl, s.torrents[h], true
-				break
-			}
-		}
-	}
+	name, c, t, found, failed := e.findTorrent(ctx, names, prov.InfoHash, in.Path)
 	if !found {
 		// A client we could not ask might hold the torrent: never conclude
 		// "gone" from a partial view.
@@ -591,6 +557,7 @@ func (e *Engine) attachTorrent(ctx context.Context, in *verdict.Input, fv *FileV
 		e.o.Log.Debug("torrent files failed", "hash", t.Hash, "err", err)
 	}
 	host := e.trackerHost(ctx, c, t)
+	seedKnown := e.fillSeedingTime(ctx, c, &t)
 	vt := &verdict.Torrent{
 		Hash: t.Hash, Name: t.Name, Private: e.privateFlag(ctx, c, t), Tracker: host,
 		Ratio: t.Ratio, SeedingTime: t.SeedingTime, State: t.State,
@@ -610,9 +577,63 @@ func (e *Engine) attachTorrent(ctx context.Context, in *verdict.Input, fv *FileV
 			in.TorrentFiles = append(in.TorrentFiles, fi)
 		}
 	}
-	ratio, secs := t.Ratio, int64(t.SeedingTime/time.Second)
-	fv.Ratio, fv.SeedingTime = &ratio, &secs
+	ratio := t.Ratio
+	fv.Ratio = &ratio
+	if seedKnown {
+		secs := int64(t.SeedingTime / time.Second)
+		fv.SeedingTime = &secs
+	}
 	fv.Tracker, fv.TorrentName, fv.TorrentState = host, t.Name, t.State
+}
+
+// findTorrent looks for the torrent behind a file across the given clients:
+// by info hash first, then by path (seed in place without, or beyond, *Arr
+// history). failed lists the clients that could not be asked.
+func (e *Engine) findTorrent(ctx context.Context, names []string, hash, libPath string) (string, clients.TorrentClient, clients.Torrent, bool, []string) {
+	var failed []string
+	for pass := 0; pass < 2; pass++ {
+		for _, n := range names {
+			cl := e.o.Torrent[n]
+			s := e.snapshot(ctx, n, cl)
+			if s.err != nil {
+				if pass == 0 {
+					failed = append(failed, n)
+				}
+				continue
+			}
+			if pass == 0 {
+				if tt, ok := s.torrents[hash]; ok && hash != "" {
+					return n, cl, tt, true, failed
+				}
+				continue
+			}
+			if h, ok := s.findByContent(libPath); ok {
+				return n, cl, s.torrents[h], true, failed
+			}
+		}
+	}
+	return "", nil, clients.Torrent{}, false, failed
+}
+
+// fillSeedingTime asks a SeedTimer for a torrent whose list entry had no
+// seeding time (qBittorrent before 4.4). If that fails too it stays 0: an
+// obligation then reads as not met, which keeps the seed (fail closed). It
+// reports whether the seeding time is known.
+func (e *Engine) fillSeedingTime(ctx context.Context, c clients.TorrentClient, t *clients.Torrent) bool {
+	if !t.SeedingTimeUnknown {
+		return true
+	}
+	st, ok := c.(clients.SeedTimer)
+	if !ok {
+		return false
+	}
+	d, err := st.SeedingTime(ctx, t.Hash)
+	if err != nil {
+		e.o.Log.Debug("seeding time failed", "hash", t.Hash, "err", err)
+		return false
+	}
+	t.SeedingTime = d
+	return true
 }
 
 // setObligation copies the tracker's seeding requirement onto the verdict,
