@@ -7,7 +7,7 @@
     "build:inject": "esbuild src/main.ts --bundle --minify --format=iife --target=es2019 --legal-comments=none --loader:.css=text --outfile=../internal/webassets/dist/airrbag.js",
     "build:dashboard": "esbuild src/dashboard/main.tsx --bundle --minify --format=iife --target=es2020 --legal-comments=none --jsx=automatic --jsx-import-source=preact --outfile=../internal/webassets/dist/dashboard.js",
     "typecheck": "tsc --noEmit",
-    "test": "node --test --experimental-strip-types test/"
+    "test": "node --test --experimental-strip-types \"test/*.test.ts\""
   },
   "devDependencies": {
     "esbuild": "0.28.2",
