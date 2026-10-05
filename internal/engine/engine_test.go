@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 	"time"
 
@@ -329,5 +330,38 @@ func TestEngineResumeEvidenceWhileClientDown(t *testing.T) {
 	got, _ := e.ParentFiles(context.Background(), 1)
 	if got[0].Verdict != verdict.Keep || got[0].Cause != verdict.CauseSeedsFromFile {
 		t.Fatalf("want keep/seeds-from-file, got %s/%s %v", got[0].Verdict, got[0].Cause, got[0].Reasons)
+	}
+}
+
+// staleStore is a reachable resume store that knows it lags the live client.
+type staleStore struct {
+	fakeQB
+	why string
+}
+
+func (s *staleStore) Degraded() (bool, string) { return s.why != "", s.why }
+
+// A degraded store's silence proves nothing: a file it does not know stays
+// keep, whatever guard.unknown says. A healthy store's silence leaves the
+// file unknown.
+func TestEngineDegradedStoreFailsClosed(t *testing.T) {
+	for _, c := range []struct {
+		why  string
+		want verdict.Kind
+	}{{"BT_backup holds 383 torrents, the live client 1682", verdict.Keep}, {"", verdict.Unknown}} {
+		dir := setup(t)
+		lib := filepath.Join(dir, "library/new.mkv")
+		write(t, lib)
+		fa := &fakeArr{files: map[int][]arr.File{1: {{ID: 1, ParentID: 1, Path: lib}}}}
+		store := &staleStore{fakeQB: fakeQB{torrents: map[string]clients.Torrent{}}, why: c.why}
+		e := New(Options{Arr: fa, Torrent: map[string]clients.TorrentClient{"qBt resume": store},
+			Trackers: registry(t), FailClosed: true, UnknownMode: "allow"})
+		got, _ := e.ParentFiles(context.Background(), 1)
+		if got[0].Verdict != c.want {
+			t.Fatalf("degraded=%q: want %s, got %s (%s) %v", c.why, c.want, got[0].Verdict, got[0].Cause, got[0].Reasons)
+		}
+		if c.why != "" && (got[0].Cause != verdict.CauseClientUnreachable || !strings.Contains(Summary(got[0]), "out of date")) {
+			t.Errorf("cause %s, summary %q", got[0].Cause, Summary(got[0]))
+		}
 	}
 }

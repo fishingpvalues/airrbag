@@ -84,6 +84,31 @@ is ever blocked.
 API clients can override deliberately with `X-Airrbag-Override: <reason>`.
 The reason is logged.
 
+## qBittorrent's two resume stores
+
+qBittorrent writes resume data to one of two stores, chosen by
+`Session\ResumeDataStorageType`:
+
+| Store | Since | Default? |
+|---|---|---|
+| Legacy: `BT_backup/<hash>.fastresume` + `.torrent` | always | yes, in every release |
+| SQLite: `torrents.db` | 4.4.0, marked EXPERIMENTAL | no, opt-in |
+
+- SQLite storage came with [PR #14726](https://github.com/qbittorrent/qBittorrent/pull/14726)
+  (glassez, merged 2021-05-01), released in 4.4.0 ("EXPERIMENTAL: Setting to
+  store/load fastresume/torrent files in an SQLite database").
+- The default never changed: `SessionImpl` initialises the setting with
+  `ResumeDataStorageType::Legacy` in 4.4.0, in 5.1.2 and on current master
+  (checked in `src/base/bittorrent/session.cpp` / `sessionimpl.cpp`).
+- The WebAPI exposes the setting as `resume_data_storage_type` from 4.5.1
+  ([PR #18357](https://github.com/qbittorrent/qBittorrent/pull/18357),
+  merged 2023-01-13); older releases only have it in `qBittorrent.conf`.
+
+`qbittorrent-resume` therefore asks the live client first, then reads
+`qBittorrent.conf`, then compares the stores' modification times, and checks
+the chosen store against the live torrent count. Details in
+[CONFIGURATION.md](CONFIGURATION.md#qbittorrents-resume-store-detected-qbittorrent-resume).
+
 ## Dashboard
 
 `/airrbag` (a redirect) or `/__airrbag/` on any listener opens the dashboard, drawn like the *Arr UIs

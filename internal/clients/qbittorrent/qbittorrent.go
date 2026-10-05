@@ -359,3 +359,20 @@ var (
 	_ clients.TorrentClient = (*Client)(nil)
 	_ clients.SeedTimer     = (*Client)(nil)
 )
+
+// ResumeStorage reports how qBittorrent stores resume data: "SQLite" or
+// "Legacy" (BT_backup .fastresume files). The preference is in the WebAPI
+// from qBittorrent 4.5.1 (PR #18357); older releases answer ok=false.
+// Only that one field is read from the preferences.
+func (c *Client) ResumeStorage(ctx context.Context) (storage string, ok bool, err error) {
+	var prefs struct {
+		ResumeDataStorageType *string `json:"resume_data_storage_type"`
+	}
+	if err := c.get(ctx, "/api/v2/app/preferences", nil, &prefs); err != nil {
+		return "", false, err
+	}
+	if prefs.ResumeDataStorageType == nil || *prefs.ResumeDataStorageType == "" {
+		return "", false, nil
+	}
+	return *prefs.ResumeDataStorageType, true, nil
+}

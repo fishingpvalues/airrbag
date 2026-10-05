@@ -1,6 +1,6 @@
 #!/bin/bash
 # Run the qBittorrent client tests against one real qBittorrent release.
-#   scripts/integration-qbittorrent.sh <image>
+#   scripts/integration-qbittorrent.sh <image> [legacy|sqlite]
 # Starts qBittorrent with a payload folder mounted at /downloads, finds the
 # WebUI password (adminadmin before 4.6.1, a temporary one in the log since),
 # mounts /config so the test can also read BT_backup with the resume reader,
@@ -8,6 +8,7 @@
 set -euo pipefail
 
 IMAGE="$1"
+STORAGE="${2:-legacy}"
 NAME="airrbag-it-qbt"
 PORT=18080
 WORK="$(mktemp -d)"
@@ -21,6 +22,14 @@ cleanup() {
     rm -rf "$CONF" 2>/dev/null || true
 }
 trap cleanup EXIT
+
+# qBittorrent stores resume data in BT_backup unless told otherwise; the
+# sqlite runs set Session\ResumeDataStorageType before the first start.
+if [ "$STORAGE" = "sqlite" ]; then
+    mkdir -p "$CONF/qBittorrent"
+    printf '[BitTorrent]\nSession\\ResumeDataStorageType=SQLite\n' >"$CONF/qBittorrent/qBittorrent.conf"
+    chmod -R 777 "$CONF/qBittorrent"
+fi
 
 docker run -d --name "$NAME" -e PUID="$(id -u)" -e PGID="$(id -g)" -e WEBUI_PORT="$PORT" \
     -v "$WORK:/downloads" -v "$CONF:/config" -p "127.0.0.1:$PORT:$PORT" "$IMAGE" >/dev/null
@@ -39,5 +48,5 @@ for i in $(seq 1 15); do
     sleep 1
 done
 
-IT_QB_URL="http://127.0.0.1:$PORT" IT_QB_USER=admin IT_QB_PASS="$PASS" IT_QB_DIR="$WORK" IT_QB_RESUME="$CONF/qBittorrent/BT_backup" IT_QB_IMAGE="$IMAGE" \
+IT_QB_URL="http://127.0.0.1:$PORT" IT_QB_USER=admin IT_QB_PASS="$PASS" IT_QB_DIR="$WORK" IT_QB_RESUME="$CONF/qBittorrent/BT_backup" IT_QB_CONF="$CONF" IT_QB_STORAGE="$STORAGE" IT_QB_IMAGE="$IMAGE" \
     go test -tags integration_qbittorrent ./tests/integration -run "TestQBittorrent" -v -count=1 || { docker logs "$NAME" | tail -40; exit 1; }

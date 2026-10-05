@@ -183,6 +183,9 @@ func TestQBittorrentResumeFiles(t *testing.T) {
 	if dir == "" || backup == "" {
 		t.Skip("IT_QB_DIR/IT_QB_RESUME not set")
 	}
+	if os.Getenv("IT_QB_STORAGE") == "sqlite" {
+		t.Skip("this run stores resume data in torrents.db; see TestQBittorrentStorageDetection")
+	}
 	privT, privH := makeTorrent(t, dir, "resume-priv.bin", true)
 	pubT, pubH := makeTorrent(t, dir, "resume-pub.bin", false)
 	w := login(t)
@@ -221,4 +224,71 @@ func TestQBittorrentResumeFiles(t *testing.T) {
 type clientsTorrent struct {
 	private       bool
 	save, content string
+}
+
+// The storage detection against the real release: it must find the store
+// qBittorrent is configured for (Legacy by default, SQLite when the run sets
+// it), read the new torrents from it while qBittorrent keeps writing, and
+// agree with the live torrent count.
+func TestQBittorrentStorageDetection(t *testing.T) {
+	dir, conf := os.Getenv("IT_QB_DIR"), os.Getenv("IT_QB_CONF")
+	if dir == "" || conf == "" {
+		t.Skip("IT_QB_DIR/IT_QB_CONF not set")
+	}
+	want := resume.StorageLegacy
+	if os.Getenv("IT_QB_STORAGE") == "sqlite" {
+		want = resume.StorageSQLite
+	}
+	w := login(t)
+	var hashes []string
+	for i, private := range []bool{true, false, true} {
+		tor, h := makeTorrent(t, dir, "detect-"+string(rune('a'+i))+".bin", private)
+		w.add(t, tor)
+		hashes = append(hashes, h)
+	}
+	w.complete(t, hashes...)
+
+	live := qbittorrent.New(os.Getenv("IT_QB_URL"), os.Getenv("IT_QB_USER"), os.Getenv("IT_QB_PASS"), 30*time.Second, nil)
+	d := resume.NewDetector(conf, resume.DetectorOptions{TmpDir: t.TempDir(), Live: live, Redetect: time.Millisecond})
+	var snap map[string]bool
+	// Keep adding torrents while reading: the reader must never fail or
+	// block qBittorrent, whatever it is writing at that moment.
+	for i := 0; i < 40; i++ {
+		if i%5 == 0 {
+			tor, _ := makeTorrent(t, dir, "churn-"+string(rune('a'+i/5))+".bin", false)
+			w.add(t, tor)
+		}
+		s, err := d.Snapshot(context.Background())
+		if err != nil {
+			t.Logf("snapshot %d: %v", i, err)
+		} else {
+			snap = map[string]bool{}
+			for h, tt := range s {
+				snap[h] = tt.Private != nil && *tt.Private
+			}
+			if len(snap) >= len(hashes) && snap[hashes[0]] {
+				break
+			}
+		}
+		time.Sleep(time.Second) // resume data is written asynchronously
+	}
+	det := d.Detection()
+	t.Logf("detection: %+v", det)
+	if det.Storage != want {
+		t.Fatalf("storage %s, want %s (%s via %s)", det.Storage, want, det.Reason, det.Method)
+	}
+	for i, h := range hashes {
+		priv, ok := snap[h]
+		if !ok {
+			t.Fatalf("%s missing from %s", h, det.Path)
+		}
+		if priv != (i != 1) {
+			t.Errorf("%s private=%v", h, priv)
+		}
+	}
+	// The store may trail by the torrents added in the last second, but it
+	// must not lag far enough to be called degraded.
+	if bad, why := d.Degraded(); bad {
+		t.Errorf("degraded: %s", why)
+	}
 }

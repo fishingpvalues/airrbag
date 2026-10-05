@@ -30,7 +30,23 @@ func summary(fv FileVerdict) string {
 		return "this file belongs to a private torrent that is still owed" + facts +
 			", and airrbag could not compare the torrent's files with it"
 	case verdict.CauseClientUnreachable:
-		return "airrbag can't reach " + clientList(fv.UnreachableClients) +
+		var down, stale []string
+		for _, n := range fv.UnreachableClients {
+			if i := strings.Index(n, " (stale: "); i >= 0 {
+				stale = append(stale, n[:i]+" ("+strings.TrimSuffix(n[i+len(" (stale: "):], ")")+")")
+			} else {
+				down = append(down, n)
+			}
+		}
+		switch {
+		case len(down) > 0 && len(stale) > 0:
+			return "airrbag can't reach " + clientList(down) + " and " + clientList(stale) +
+				" is out of date, so it can't rule out that this file belongs to a seeding torrent"
+		case len(stale) > 0:
+			return "airrbag's copy of " + clientList(stale) +
+				" is out of date, so it can't rule out that this file belongs to a seeding torrent"
+		}
+		return "airrbag can't reach " + clientList(down) +
 			", so it can't rule out that this file belongs to a seeding torrent"
 	case verdict.CauseTorrentEvidence:
 		return "this file came from a torrent" + via(fv) + ", and airrbag can't check whether that torrent still has to seed"

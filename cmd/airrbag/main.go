@@ -14,6 +14,7 @@ import (
 	"net/url"
 	"os"
 	"os/signal"
+	"strconv"
 	"strings"
 	"sync"
 	"syscall"
@@ -167,6 +168,58 @@ func (p *clientPool) resume(cfg config.Client) clients.TorrentClient {
 	c := resume.New(cfg.Path, cfg.Layout, cfg.SavePath)
 	p.torrent[key] = c
 	return c
+}
+
+// sqlite returns the qBittorrent torrents.db reader for cfg.
+func (p *clientPool) sqlite(cfg config.Client) clients.TorrentClient {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	key := "sqlite|" + cfg.Path + "|" + cfg.TmpDir
+	if c, ok := p.torrent[key]; ok {
+		return c
+	}
+	c := resume.NewSQLite(cfg.Path, cfg.TmpDir, 0)
+	p.torrent[key] = c
+	return c
+}
+
+// detector returns the auto-detecting qBittorrent resume reader for cfg.
+func (p *clientPool) detector(cfg config.Client, live resume.LiveSource) clients.TorrentClient {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	key := "detector|" + cfg.Path + "|" + cfg.TmpDir
+	if c, ok := p.torrent[key]; ok {
+		return c
+	}
+	c := resume.NewDetector(cfg.Path, resume.DetectorOptions{TmpDir: cfg.TmpDir, Live: live, StaleAfter: cfg.StaleAfter.Duration})
+	p.torrent[key] = c
+	return c
+}
+
+// liveFor picks the live qBittorrent a qbittorrent-resume source compares
+// with: the named one, or the only client that can report its storage type.
+func liveFor(name string, tor map[string]clients.TorrentClient, log *slog.Logger) resume.LiveSource {
+	if name != "" {
+		if ls, ok := tor[name].(resume.LiveSource); ok {
+			return ls
+		}
+		log.Warn("qbittorrent-resume: live client not found or not qBittorrent", "live", name)
+		return nil
+	}
+	var found resume.LiveSource
+	n := 0
+	for _, c := range tor {
+		if ls, ok := c.(resume.LiveSource); ok {
+			found, n = ls, n+1
+		}
+	}
+	if n == 1 {
+		return found
+	}
+	if n > 1 {
+		log.Warn("qbittorrent-resume: several qBittorrent clients, set live: to pick one; comparing with none")
+	}
+	return nil
 }
 
 // indexer returns the NZBHydra2 history client at url.
@@ -415,7 +468,25 @@ func startInstance(ctx context.Context, cfg *config.Config, inst config.Instance
 				name = "resume:" + cc.Path
 			}
 			tor[name] = pool.resume(cc)
+		case "qbittorrent-sqlite":
+			name := cc.Name
+			if name == "" {
+				name = "qbittorrent-sqlite:" + cc.Path
+			}
+			tor[name] = pool.sqlite(cc)
 		}
+	}
+	// qbittorrent-resume sources last: they ask a live qBittorrent from the
+	// set above for its storage type and torrent count.
+	for _, cc := range cfg.Clients {
+		if cc.Type != "qbittorrent-resume" {
+			continue
+		}
+		name := cc.Name
+		if name == "" {
+			name = "qbittorrent-resume:" + cc.Path
+		}
+		tor[name] = pool.detector(cc, liveFor(cc.Live, tor, log))
 	}
 	eng := engine.New(engine.Options{
 		Instance: inst.Name, Arr: ac, Torrent: tor, Usenet: use, Indexers: indexers, Direct: direct,
@@ -473,6 +544,9 @@ func healthFunc(tor map[string]clients.TorrentClient, use map[string]clients.Use
 				out[name] = "ok"
 			}
 			cancel()
+			if d, ok := c.(*resume.Detector); ok {
+				out[name] = detectionStatus(out[name], d.Detection())
+			}
 		}
 		for name, c := range use {
 			cctx, cancel := context.WithTimeout(ctx, 5*time.Second)
@@ -486,4 +560,18 @@ func healthFunc(tor map[string]clients.TorrentClient, use map[string]clients.Use
 		last, at = out, time.Now()
 		return out
 	}
+}
+
+// detectionStatus renders a qbittorrent-resume source for /health and the
+// dashboard's System page: which store, why, and whether it lags.
+func detectionStatus(status string, d resume.Detection) string {
+	live := "unknown"
+	if d.LiveCount >= 0 {
+		live = strconv.Itoa(d.LiveCount)
+	}
+	s := fmt.Sprintf("%s; storage %s via %s (%s); %d torrents, live client %s", status, d.Storage, d.Method, d.Reason, d.SourceCount, live)
+	if d.Degraded {
+		s = "degraded: " + d.Why + "; " + s
+	}
+	return s
 }

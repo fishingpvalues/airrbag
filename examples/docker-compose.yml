@@ -20,6 +20,11 @@ services:
     # as distroless nonroot (65532), and the file must be owned by 65532.
     user: "1000:1000"
     read_only: true
+    # Only needed with a qbittorrent-resume / qbittorrent-sqlite source: the
+    # SQLite store is read from a short-lived copy here. Size it above
+    # qBittorrent's torrents.db + torrents.db-wal.
+    tmpfs:
+      - /tmp:size=512m,mode=1777
     cap_drop: [ALL]
     security_opt:
       - no-new-privileges:true

@@ -155,12 +155,19 @@ jobs:
             image: lscr.io/linuxserver/qbittorrent:4.6.7-r0-ls353
           - release: "5"
             image: lscr.io/linuxserver/qbittorrent:5.2.4_v2.0.15-ls479
+          # SQLite resume storage (4.4+, opt-in): torrents.db instead of BT_backup.
+          - release: "4.6-sqlite"
+            image: lscr.io/linuxserver/qbittorrent:4.6.7-r0-ls353
+            storage: sqlite
+          - release: "5-sqlite"
+            image: lscr.io/linuxserver/qbittorrent:5.2.4_v2.0.15-ls479
+            storage: sqlite
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
         with:
           go-version-file: go.mod
-      - run: scripts/integration-qbittorrent.sh "${{ matrix.image }}"
+      - run: scripts/integration-qbittorrent.sh "${{ matrix.image }}" "${{ matrix.storage || 'legacy' }}"
 
   # Known vulnerabilities in the Go module graph that the code actually calls.
   govulncheck:
