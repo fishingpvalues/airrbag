@@ -1,5 +1,26 @@
 # API
 
+## Routes
+
+Under each listener, next to the proxied *Arr. Requires *Arr credentials.
+
+| Route | Purpose |
+|-------|---------|
+| `GET /__airrbag/api/files?parentId=` | Verdicts for one movie, series, artist or author |
+| `GET /__airrbag/api/resolve?path=` | UI route to parent id |
+| `POST /__airrbag/api/check` | What a given DELETE would remove |
+| `POST /__airrbag/api/grant` | Single-use confirmation for one DELETE |
+| `GET /__airrbag/api/lists` | Whole-library grouping |
+| `GET /__airrbag/api/info` | App, guard state, version |
+| `GET /__airrbag/api/dashboard/overview` | Counts and sizes per verdict and instance, client health |
+| `GET /__airrbag/api/dashboard/files` | Paged, sorted, filtered files of all instances (`instance`, `verdict`, `source`, `q`, `sort`, `dir`, `page`, `pageSize`) |
+| `GET /__airrbag/api/dashboard/guard` | Recent guard decisions |
+| `GET /__airrbag/api/dashboard/settings` | Effective configuration, redacted |
+| `GET /__airrbag/api/dashboard/clients?fresh=1` | Download-client connectivity |
+| `GET /__airrbag/api/dashboard/system` | Version, uptime, instances |
+
+
+
 Airrbag's own endpoints live under each listener, next to the proxied *Arr,
 at `/__airrbag/`. They require the same credentials as the *Arr (session
 cookie, `X-Api-Key` header or `apikey` query parameter, or a trusted SSO

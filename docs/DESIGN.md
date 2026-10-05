@@ -145,6 +145,41 @@ with the override.
 **Pure core.** `internal/verdict` takes plain values and returns a verdict
 with reasons. It has no I/O and carries most of the test cases.
 
+### Every verdict names its cause
+
+One sentence used to describe every kept file, so a file kept only because
+qBittorrent was down read as "the seeding data of a private torrent". The
+decision now returns a `Cause` with the verdict (`internal/verdict`), and
+every user-facing text (dialog reason, 409 message and description) is built
+from it in one place (`engine.Summary`). A table test per cause pins the
+sentence, and asserts that only the seed-in-place cause says "seeding data".
+
+### Old qBittorrent releases: read the field where the release has it
+
+qBittorrent moved fields between endpoints across 4.x and 5.x. The client
+asks for the newest source and falls back per field rather than per version:
+the private flag from `torrents/info` (5.0), `torrents/properties`
+`is_private` (4.6), or the disabled DHT/PeX/LSD rows of `torrents/trackers`;
+the seeding time from `torrents/info` (4.4) or, per torrent and only when a
+verdict needs it, `torrents/properties`; `content_path` (4.3.2) or
+`save_path` + name. Field presence decides, not the version number, so a
+patched or forked build behaves. `app/webapiVersion` below 2.0 (qBittorrent
+4.0) is refused outright: that is the legacy API. CI runs real 4.3, 4.6 and
+5.x containers.
+
+### Resume files as a second witness
+
+A down WebUI used to leave airrbag with "client unreachable", which keeps the
+file but cannot say why. `libtorrent-resume` reads the client's own resume
+files from a read-only mount (qBittorrent `BT_backup`, Deluge `state`, or a
+folder of `.torrent` files) and answers the same questions offline. It is
+an ordinary torrent client to the engine, so it joins the info-hash and path
+search like any other; when the live client is down and the resume files
+still show a seed, the verdict is the precise "seeds from this file". The
+bencode decoder bounds input size, depth and element count and is fuzzed,
+and metainfo paths cannot leave the torrent root, because these files are
+read without trusting whoever wrote them.
+
 ## Package map
 
 | Package | Responsibility |

@@ -1,4 +1,4 @@
-.PHONY: all web build test test-race lint fmt typecheck docker-build cover run clean tidy icons
+.PHONY: all web build test test-race lint fmt typecheck docker-build cover run clean tidy icons screenshots
 
 APP := airrbag
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
@@ -53,3 +53,6 @@ tidy:
 
 clean:
 	rm -f $(APP) coverage.out coverage.html internal/webassets/dist/airrbag.js internal/webassets/dist/dashboard.js internal/webassets/dist/dashboard.css
+
+screenshots:
+	scripts/optimize-screenshots.sh
