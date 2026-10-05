@@ -163,3 +163,30 @@ func TestClientAgainstFixtures(t *testing.T) {
 		t.Error("wrong api key must fail detection")
 	}
 }
+
+func TestAlbumByForeignID(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/v1/album", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Query().Get("foreignAlbumId") != "abc-123" {
+			_, _ = w.Write([]byte(`[]`))
+			return
+		}
+		_, _ = w.Write([]byte(`[{"id":42,"artistId":9,"foreignAlbumId":"ABC-123"}]`))
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+	c := New(srv.URL, "k", srv.Client())
+	c.Shape = lidarrShape
+	ctx := context.Background()
+	album, artist, ok, err := c.AlbumByForeignID(ctx, "abc-123")
+	if err != nil || !ok || album != 42 || artist != 9 {
+		t.Fatalf("got %d %d %v %v", album, artist, ok, err)
+	}
+	if _, _, ok, err := c.AlbumByForeignID(ctx, "missing"); ok || err != nil {
+		t.Fatalf("missing album: ok=%v err=%v", ok, err)
+	}
+	c.Shape = radarrShape
+	if _, _, ok, _ := c.AlbumByForeignID(ctx, "abc-123"); ok {
+		t.Fatal("radarr has no albums")
+	}
+}

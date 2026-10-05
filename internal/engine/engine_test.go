@@ -217,3 +217,55 @@ func TestFilesByIDSkipsMissing(t *testing.T) {
 		t.Fatalf("a file the *Arr does not know must be skipped, got %v %v", got, err)
 	}
 }
+
+// albumArr is a fakeArr with Lidarr albums.
+type albumArr struct {
+	fakeArr
+	byAlbum map[int][]arr.File
+}
+
+func (a *albumArr) FilesBy(_ context.Context, param string, id int) ([]arr.File, error) {
+	if param != "albumId" {
+		return nil, nil
+	}
+	return a.byAlbum[id], nil
+}
+
+func (a *albumArr) AlbumByForeignID(_ context.Context, foreign string) (int, int, bool, error) {
+	if foreign == "f-album" {
+		return 7, 1, true, nil
+	}
+	return 0, 0, false, nil
+}
+
+func TestAlbumResolveAndFiles(t *testing.T) {
+	dir := setup(t)
+	track := filepath.Join(dir, "library/01.flac")
+	other := filepath.Join(dir, "library/other.flac")
+	write(t, track)
+	write(t, other)
+	fa := &albumArr{
+		fakeArr: fakeArr{files: map[int][]arr.File{1: {{ID: 1, Path: track}, {ID: 2, Path: other}}},
+			history: hist(1, "SABnzbd_nzo_a", "1", "Hydra")},
+		byAlbum: map[int][]arr.File{7: {{ID: 1, Path: track}}},
+	}
+	e := New(Options{Arr: fa})
+	album, artist, ok, err := e.ResolveAlbum(context.Background(), "f-album")
+	if err != nil || !ok || album != 7 || artist != 1 {
+		t.Fatalf("ResolveAlbum = %d %d %v %v", album, artist, ok, err)
+	}
+	if _, _, ok, _ := e.ResolveAlbum(context.Background(), "nope"); ok {
+		t.Fatal("unknown album resolved")
+	}
+	fvs, err := e.AlbumFiles(context.Background(), album, artist)
+	if err != nil || len(fvs) != 1 || fvs[0].FileID != 1 || fvs[0].ParentID != 1 {
+		t.Fatalf("AlbumFiles = %+v %v", fvs, err)
+	}
+}
+
+func TestResolveAlbumWithoutAlbums(t *testing.T) {
+	e := New(Options{Arr: &fakeArr{}})
+	if _, _, ok, err := e.ResolveAlbum(context.Background(), "x"); ok || err != nil {
+		t.Fatalf("app without albums: ok=%v err=%v", ok, err)
+	}
+}

@@ -32,10 +32,18 @@ export const APPS: Record<string, AppUI[]> = {
   radarr: [movie],
   sonarr: [series],
   whisparr: [movie, series],
-  lidarr: [{
-    route: /\/artist\/[^/]+\/?$/,
-    anchors: ['[class*="ArtistDetails-header"]', '[class*="ArtistDetails-contentContainer"]'],
-  }],
+  lidarr: [
+    {
+      route: /\/artist\/[^/]+\/?$/,
+      anchors: ['[class*="ArtistDetails-header"]', '[class*="ArtistDetails-contentContainer"]'],
+    },
+    {
+      // Album pages: /album/<foreignAlbumId>. The server resolves the album
+      // and returns only its tracks.
+      route: /\/album\/[^/]+\/?$/,
+      anchors: ['[class*="AlbumDetails-header"]', '[class*="AlbumDetails-contentContainer"]'],
+    },
+  ],
   readarr: [{
     route: /\/author\/[^/]+\/?$/,
     anchors: ['[class*="AuthorDetails-header"]', '[class*="AuthorDetails-contentContainer"]'],

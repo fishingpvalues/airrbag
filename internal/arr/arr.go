@@ -231,6 +231,29 @@ func (c *Client) File(ctx context.Context, id int) (File, error) {
 	return r.file(), nil
 }
 
+// AlbumByForeignID finds a Lidarr album by the foreign album id the Lidarr UI
+// uses in its /album/<id> route. ok is false when the album is unknown or the
+// app has no albums.
+func (c *Client) AlbumByForeignID(ctx context.Context, foreignID string) (albumID, artistID int, ok bool, err error) {
+	if c.Shape.App != "lidarr" || foreignID == "" {
+		return 0, 0, false, nil
+	}
+	var raw []struct {
+		ID       int    `json:"id"`
+		ArtistID int    `json:"artistId"`
+		Foreign  string `json:"foreignAlbumId"`
+	}
+	if err := c.get(ctx, c.Shape.API, "/album", url.Values{"foreignAlbumId": {foreignID}}, &raw); err != nil {
+		return 0, 0, false, err
+	}
+	for _, a := range raw {
+		if strings.EqualFold(a.Foreign, foreignID) {
+			return a.ID, a.ArtistID, true, nil
+		}
+	}
+	return 0, 0, false, nil
+}
+
 // Parent is a movie, series, artist or author.
 type Parent struct {
 	ID    int    `json:"id"`

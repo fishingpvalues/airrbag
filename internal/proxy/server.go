@@ -314,7 +314,7 @@ func (s *Server) guard(w http.ResponseWriter, r *http.Request) bool {
 		return false
 	}
 	if override := s.override(r, id, body); override != "" {
-		s.o.Log.Info("guard override", "instance", s.o.Name, "path", r.URL.Path, "reason", override)
+		s.o.Log.Info("guard override", "path", r.URL.Path, "reason", override)
 		s.o.Metrics.Add("airrbag_guard_overridden_total", 1, "instance", s.o.Name)
 		s.record(r, hub.Overridden, "delete confirmed despite the guard", nil, override)
 		return false
@@ -359,7 +359,7 @@ func (s *Server) guard(w http.ResponseWriter, r *http.Request) bool {
 		reason, msg = "unknown", "airrbag: provenance unknown: airrbag could not prove this file is safe to delete"
 	}
 	if s.o.Guard.DryRun {
-		s.o.Log.Warn("guard dry-run: would block delete", "instance", s.o.Name, "path", r.URL.Path,
+		s.o.Log.Warn("guard dry-run: would block delete", "path", r.URL.Path,
 			"keep", len(keep), "unknown", len(unknown), "reason", reason)
 		s.o.Metrics.Add("airrbag_guard_dryrun_total", 1, "instance", s.o.Name)
 		if reason == "keep" {
@@ -369,32 +369,7 @@ func (s *Server) guard(w http.ResponseWriter, r *http.Request) bool {
 		}
 		return false
 	}
-	s.o.Log.Warn("guard blocked delete", "instance", s.o.Name, "path", r.URL.Path,
-		"keep", len(keep), "unknown", len(unknown), "reason", reason)
-	s.o.Metrics.Add("airrbag_guard_blocked_total", 1, "instance", s.o.Name, "reason", reason)
-	description := "Deleting now ends a private-tracker seed whose obligation is not met: a hit-and-run."
-	if len(keep) > 0 {
-		msg = KeepMessage(keep)
-		s.record(r, hub.Blocked, "a private seed is still owed", keep, "")
-	} else {
-		description = "airrbag found no evidence of where these files came from (guard.unknown: block)."
-		s.record(r, hub.Blocked, "provenance unknown", unknown, "")
-	}
-	if !blockUnknown {
-		unknown = nil
-	}
-	writeJSON(w, http.StatusConflict, map[string]any{
-		// message/description: the Servarr error shape the *Arr UIs render;
-		// airrbag:true lets the injected script recognize its own refusal.
-		"message":     msg,
-		"description": description,
-		"airrbag":     true,
-		"error":       msg,
-		"reason":      reason,
-		"keep":        keep,
-		"unknown":     unknown,
-		"override":    "confirm in the Airrbag dialog",
-	})
+	s.refuse(w, r, keep, unknown, reason, msg, blockUnknown)
 	return true
 }
 
@@ -425,7 +400,7 @@ func (s *Server) targetVerdicts(ctx context.Context, t Target) ([]engine.FileVer
 }
 
 // detailRoutes are the UI routes of a parent's detail page per app.
-var detailRoutes = regexp.MustCompile(`/(movie|series|artist|author)/([^/?#]+)`)
+var detailRoutes = regexp.MustCompile(`/(movie|series|artist|author|album)/([^/?#]+)`)
 
 func (s *Server) serveOwn(w http.ResponseWriter, r *http.Request, rest string) {
 	setBaseSecurityHeaders(w)
@@ -470,9 +445,24 @@ func (s *Server) serveOwn(w http.ResponseWriter, r *http.Request, rest string) {
 		}
 		s.serveAPI(w, r.WithContext(withIdentity(r.Context(), id)), strings.TrimPrefix(rest, "/api"))
 	default:
-		http.NotFound(w, r)
+		s.servePage(w, r, rest)
 	}
 }
+
+// servePage redirects a dashboard page path to its hash route: the dashboard
+// routes by hash (#/files), so a typed or bookmarked /__airrbag/files lands on
+// the same page. Anything else is 404.
+func (s *Server) servePage(w http.ResponseWriter, r *http.Request, rest string) {
+	page := strings.Trim(rest, "/")
+	if (r.Method == http.MethodGet || r.Method == http.MethodHead) && dashboardPages[page] {
+		http.Redirect(w, r, s.urlBase+Prefix+"/#/"+page, http.StatusFound)
+		return
+	}
+	http.NotFound(w, r)
+}
+
+// dashboardPages are the dashboard's hash routes.
+var dashboardPages = map[string]bool{"overview": true, "files": true, "guard": true, "settings": true, "system": true}
 
 func (s *Server) unauthorized(w http.ResponseWriter, limited bool) {
 	if limited {
@@ -566,6 +556,20 @@ func (s *Server) apiInfo(w http.ResponseWriter, _ *http.Request) {
 
 func (s *Server) apiResolve(w http.ResponseWriter, r *http.Request) {
 	m := detailRoutes.FindStringSubmatch(r.URL.Query().Get("path"))
+	if m != nil && m[1] == "album" {
+		// Lidarr album page: the album's tracks, under its artist.
+		slug, _ := url.PathUnescape(m[2])
+		albumID, artistID, ok, err := s.o.Engine.ResolveAlbum(r.Context(), slug)
+		if err != nil {
+			writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
+			return
+		}
+		if !ok {
+			artistID, albumID = 0, 0
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"parentId": artistID, "albumId": albumID})
+		return
+	}
 	if m == nil || m[1] != s.o.Shape.Parent {
 		writeJSON(w, http.StatusOK, map[string]any{"parentId": 0})
 		return
@@ -588,7 +592,12 @@ func (s *Server) apiFiles(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "parentId required"})
 		return
 	}
-	fvs, err := s.o.Engine.ParentFiles(r.Context(), id)
+	var fvs []engine.FileVerdict
+	if albumID, aerr := strconv.Atoi(r.URL.Query().Get("albumId")); aerr == nil && albumID > 0 {
+		fvs, err = s.o.Engine.AlbumFiles(r.Context(), albumID, id)
+	} else {
+		fvs, err = s.o.Engine.ParentFiles(r.Context(), id)
+	}
 	if err != nil {
 		writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
 		return
@@ -622,7 +631,7 @@ func (s *Server) apiGrant(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.grants.put(identityFrom(r.Context()), grantKey(cr.Method, u, []byte(cr.Body)))
-	s.o.Log.Info("guard grant issued", "instance", s.o.Name, "path", u.Path, "reason", cr.Reason)
+	s.o.Log.Info("guard grant issued", "path", u.Path, "reason", cr.Reason)
 	writeJSON(w, http.StatusOK, map[string]any{"ok": true, "ttlSeconds": int(s.grants.ttl / time.Second)})
 }
 
@@ -638,6 +647,49 @@ func (s *Server) apiLists(w http.ResponseWriter, r *http.Request) {
 // unknownBlocks applies guard.unknown to the files whose origin could not be
 // proven. "block" refuses them; "confirm" lets an ungranted caller through
 // with a WARN and a metric (the UI asked before it sent); "allow" says nothing.
+// refuse answers a blocked delete with the Servarr-style 409 the *Arr UIs and
+// the injected safety net render.
+func (s *Server) refuse(w http.ResponseWriter, r *http.Request, keep, unknown []engine.FileVerdict, reason, msg string, blockUnknown bool) {
+	s.o.Log.Warn("guard blocked delete", "path", r.URL.Path,
+		"keep", len(keep), "unknown", len(unknown), "reason", reason)
+	s.o.Metrics.Add("airrbag_guard_blocked_total", 1, "instance", s.o.Name, "reason", reason)
+	description := "Deleting now ends a private-tracker seed whose obligation is not met: a hit-and-run."
+	if len(keep) > 0 {
+		msg = KeepMessage(keep)
+		s.record(r, hub.Blocked, "a private seed is still owed", keep, "")
+	} else if s.o.Guard.UnknownMode() == config.UnknownConfirm {
+		description = "airrbag found no evidence of where these files came from. Confirm in the airrbag dialog to delete."
+		s.record(r, hub.Blocked, "provenance unknown, not confirmed", unknown, "")
+	} else {
+		description = "airrbag found no evidence of where these files came from (guard.unknown: block)."
+		s.record(r, hub.Blocked, "provenance unknown", unknown, "")
+	}
+	if !blockUnknown {
+		unknown = nil
+	}
+	writeJSON(w, http.StatusConflict, map[string]any{
+		// message/description: the Servarr error shape the *Arr UIs render;
+		// airrbag:true lets the injected script recognize its own refusal.
+		"message":     msg,
+		"description": description,
+		"airrbag":     true,
+		"error":       msg,
+		"reason":      reason,
+		"keep":        keep,
+		"unknown":     unknown,
+		"override":    "confirm in the Airrbag dialog",
+	})
+}
+
+// fromBrowser reports whether a request was sent by a web browser. Browsers
+// attach Sec-Fetch-* metadata to every fetch and XHR and page scripts cannot
+// remove it; the *Arr UI's session cookie is the fallback for older browsers.
+// Command-line and server-side API clients send neither.
+func fromBrowser(r *http.Request) bool {
+	return r.Header.Get("Sec-Fetch-Mode") != "" || r.Header.Get("Sec-Fetch-Site") != "" ||
+		r.Header.Get("Cookie") != ""
+}
+
 func (s *Server) unknownBlocks(r *http.Request, keep, unknown []engine.FileVerdict) bool {
 	if len(unknown) == 0 {
 		return false
@@ -646,9 +698,18 @@ func (s *Server) unknownBlocks(r *http.Request, keep, unknown []engine.FileVerdi
 	case config.UnknownBlock:
 		return true
 	case config.UnknownConfirm:
+		// A browser always goes check -> dialog -> grant before it deletes,
+		// so a browser DELETE that reaches here without a grant skipped the
+		// dialog (script not loaded, race, another tab). Refuse it; the
+		// injected 409 safety net then shows the dialog. Plain API callers
+		// (scripts, other tools) cannot answer a dialog: they pass and are
+		// logged, as documented for guard.unknown: confirm.
+		if fromBrowser(r) {
+			return true
+		}
 		if len(keep) == 0 {
 			s.o.Log.Warn("guard: delete of files with unproven origin let through without confirmation",
-				"instance", s.o.Name, "path", r.URL.Path, "unknown", len(unknown))
+				"path", r.URL.Path, "unknown", len(unknown))
 			s.o.Metrics.Add("airrbag_unknown_deletes_total", 1, "instance", s.o.Name)
 			s.record(r, hub.UnknownPassed, "provenance unknown, no confirmation (guard.unknown: confirm)", unknown, "")
 		}

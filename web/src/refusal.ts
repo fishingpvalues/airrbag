@@ -12,7 +12,9 @@ export interface Refusal {
   message: string;
   description?: string;
   airrbag: true;
+  reason?: "keep" | "unknown";
   keep?: FileVerdict[];
+  unknown?: FileVerdict[];
 }
 
 export interface SentRequest {
@@ -42,14 +44,15 @@ export async function handleRefusal(req: SentRequest, refusal: Refusal): Promise
   if (showing) return;
   showing = true;
   try {
+    const unknownOnly = refusal.reason === "unknown" && !(refusal.keep && refusal.keep.length);
     const go = await modal({
-      title: "Airrbag blocked this delete",
-      color: COLORS.keep,
+      title: unknownOnly ? "Airrbag can't prove where this came from" : "Airrbag blocked this delete",
+      color: unknownOnly ? COLORS.unknown : COLORS.keep,
       intro: refusal.message + (refusal.description ? ` ${refusal.description}` : ""),
-      files: refusal.keep || [],
-      confirmLabel: "Delete anyway",
+      files: (unknownOnly ? refusal.unknown : refusal.keep) || [],
+      confirmLabel: unknownOnly ? "Delete" : "Delete anyway",
       danger: true,
-      requireAck: "I understand this can count as a hit-and-run.",
+      requireAck: unknownOnly ? undefined : "I understand this can count as a hit-and-run.",
     });
     if (!go) return;
     const url = new URL(req.url, location.href);

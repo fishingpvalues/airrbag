@@ -89,7 +89,13 @@ unknown verdict into `keep`. What remains unknown has no evidence at all, and
 
 - `confirm` (default) asks once in the UI with a warning and lets an API
   caller without a grant through, logged at WARN and counted in
-  `airrbag_unknown_deletes_total`. Blocking these by default would interrupt
+  `airrbag_unknown_deletes_total`. A *browser* delete without a grant is
+  refused (409, `reason: "unknown"`): the UI always goes check, dialog,
+  grant, so a browser request that arrives without a grant skipped the
+  dialog, and the injected safety net turns the 409 into it. "Browser" means
+  the request carries `Sec-Fetch-Mode`/`Sec-Fetch-Site` (set by every modern
+  browser, not removable by page scripts) or a cookie; scripts and server-side
+  tools send neither. Blocking these by default would interrupt
   every cleanup of an old library while protecting nothing the evidence chain
   could identify. A visible warning plus an audit trail is the balance.
 - `block` refuses them everywhere without a grant, for maximum safety.
@@ -97,7 +103,11 @@ unknown verdict into `keep`. What remains unknown has no evidence at all, and
 
 **Fail closed for private trackers.** If the torrent client cannot be asked and
 the indexer is private, the verdict is `keep`. If several clients exist and one
-is down, "not found" is never concluded from a partial view.
+is down, "not found" is never concluded from a partial view. More generally,
+while any configured torrent client is unreachable, a file that no evidence
+places in Usenet or a direct-download folder is `keep`, whatever
+`guard.unknown` says: the client that cannot be asked might hold a torrent
+seeding from exactly that file.
 
 **No own authentication.** Airrbag replays the caller's *Arr credentials
 against `/system/status`. Whoever may use the *Arr may use Airrbag; verdicts

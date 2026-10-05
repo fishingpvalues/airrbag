@@ -12,6 +12,9 @@ web/node_modules: web/package.json web/package-lock.json
 web: web/node_modules
 	cd web && npm run build
 
+web-test: web/node_modules
+	cd web && npm test
+
 # Regenerate the committed PNG icons from assets/logo.svg (needs rsvg-convert).
 icons:
 	scripts/icons.sh

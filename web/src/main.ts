@@ -12,7 +12,7 @@
 // every app-specific selector in APPS below.
 
 import { confirmDelete } from "./guard";
-import { startBadges } from "./badges";
+import { invalidateBadges, startBadges } from "./badges";
 import { cfg } from "./config";
 import { handleRefusal, parseRefusal } from "./refusal";
 
@@ -42,6 +42,7 @@ function patchXHR(): void {
     const bodyText = typeof body === "string" ? body : "";
     // Safety net: a refusal from the server-side guard becomes the dialog.
     this.addEventListener("load", () => {
+      if (this.status >= 200 && this.status < 300) invalidateBadges();
       const refusal = parseRefusal(this.status, typeof this.responseText === "string" ? this.responseText : "");
       if (refusal) {
         handleRefusal({ method: tag.method, url: tag.url, body: bodyText, headers: tag.headers }, refusal).catch(() => undefined);
@@ -72,6 +73,7 @@ function patchFetch(): void {
     const body = init && typeof init.body === "string" ? init.body : "";
     const watch = (p: Promise<Response>) =>
       p.then((res) => {
+        if (res.ok) invalidateBadges();
         if (res.status === 409 || res.status === 503) {
           res
             .clone()

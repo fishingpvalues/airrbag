@@ -399,13 +399,15 @@ func newUnknownServer(t *testing.T, up *upstream, guard config.Guard, clientDown
 }
 
 func TestGuardUnknownModes(t *testing.T) {
+	// do() sends the *Arr session cookie, i.e. a browser. Plain API callers
+	// are covered in TestConfirmModeAPICallerPasses.
 	cases := []struct {
 		mode     string
 		wantCode int
 		confirm  bool
 	}{
-		{"", http.StatusOK, true}, // default: confirm
-		{config.UnknownConfirm, http.StatusOK, true},
+		{"", http.StatusConflict, true}, // default: confirm; a browser must go through the dialog
+		{config.UnknownConfirm, http.StatusConflict, true},
 		{config.UnknownBlock, http.StatusConflict, true},
 		{config.UnknownAllow, http.StatusOK, false},
 	}
@@ -475,5 +477,88 @@ func TestAliasRedirectsToDashboard(t *testing.T) {
 	}
 	if rec := do(t, s, http.MethodPost, "/airrbag", "", nil); rec.Code == http.StatusFound {
 		t.Fatal("POST /airrbag must not be redirected")
+	}
+}
+
+// apiDo is a plain API client: the *Arr API key, no cookie, no Sec-Fetch-*.
+func apiDo(t *testing.T, h http.Handler, method, target string) *httptest.ResponseRecorder {
+	t.Helper()
+	req := httptest.NewRequest(method, target, nil)
+	req.Header.Set("X-Api-Key", testAPIKey)
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+	return rec
+}
+
+func TestConfirmModeAPICallerPasses(t *testing.T) {
+	up := newUpstream(t)
+	s := newUnknownServer(t, up, config.Guard{Unknown: config.UnknownConfirm}, false)
+	if rec := apiDo(t, s, http.MethodDelete, "/api/v3/moviefile/20"); rec.Code != http.StatusOK {
+		t.Fatalf("API caller in confirm mode: %d %s", rec.Code, rec.Body)
+	}
+	if up.deletes.Load() != 1 {
+		t.Fatal("the API caller's delete must reach the *Arr")
+	}
+}
+
+func TestConfirmModeBrowserWithoutGrantIsRefused(t *testing.T) {
+	// The 0.4.0 bug: the browser skipped the dialog and the delete passed.
+	// Sec-Fetch-* alone (no cookie, e.g. forms auth disabled) is a browser too.
+	up := newUpstream(t)
+	s := newUnknownServer(t, up, config.Guard{Unknown: config.UnknownConfirm}, false)
+	req := httptest.NewRequest(http.MethodDelete, "/api/v3/moviefile/20", nil)
+	req.Header.Set("X-Api-Key", testAPIKey)
+	req.Header.Set("Sec-Fetch-Mode", "cors")
+	req.Header.Set("Sec-Fetch-Site", "same-origin")
+	rec := httptest.NewRecorder()
+	s.ServeHTTP(rec, req)
+	if rec.Code != http.StatusConflict || !strings.Contains(rec.Body.String(), `"reason":"unknown"`) ||
+		!strings.Contains(rec.Body.String(), "Confirm in the airrbag dialog") {
+		t.Fatalf("browser delete of an unknown file without a grant: %d %s", rec.Code, rec.Body)
+	}
+	if up.deletes.Load() != 0 {
+		t.Fatal("refused delete reached the *Arr")
+	}
+	// The dialog's grant lets the same browser request through.
+	do(t, s, http.MethodPost, "/__airrbag/api/grant", `{"method":"DELETE","url":"/api/v3/moviefile/20","reason":"checked"}`, nil)
+	if r := do(t, s, http.MethodDelete, "/api/v3/moviefile/20", "", nil); r.Code != http.StatusOK {
+		t.Fatalf("granted browser delete: %d %s", r.Code, r.Body)
+	}
+}
+
+func TestConfirmModeBrowserDryRunPasses(t *testing.T) {
+	up := newUpstream(t)
+	s := newUnknownServer(t, up, config.Guard{Unknown: config.UnknownConfirm, DryRun: true}, false)
+	if rec := do(t, s, http.MethodDelete, "/api/v3/moviefile/20", "", nil); rec.Code != http.StatusOK {
+		t.Fatalf("dry run must pass: %d", rec.Code)
+	}
+}
+
+func TestClientDownKeepsFilesWithoutHistory(t *testing.T) {
+	// The second 0.4.0 bug: with the torrent client down, a file with no
+	// *Arr history read unknown and unknown: allow let the delete through.
+	for _, mode := range []string{config.UnknownAllow, config.UnknownConfirm, config.UnknownBlock} {
+		up := newUpstream(t)
+		s := newUnknownServer(t, up, config.Guard{Unknown: mode}, true)
+		rec := apiDo(t, s, http.MethodDelete, "/api/v3/moviefile/20")
+		if rec.Code != http.StatusConflict || !strings.Contains(rec.Body.String(), `"reason":"keep"`) {
+			t.Errorf("mode %q: client down, no history: want 409 keep, got %d %s", mode, rec.Code, rec.Body)
+		}
+		if up.deletes.Load() != 0 {
+			t.Errorf("mode %q: delete reached the *Arr", mode)
+		}
+	}
+}
+
+func TestDashboardPageRedirects(t *testing.T) {
+	s := newServer(t, newUpstream(t), config.Guard{})
+	for _, p := range []string{"files", "guard", "settings", "system", "overview"} {
+		rec := do(t, s, http.MethodGet, Prefix+"/"+p, "", nil)
+		if rec.Code != http.StatusFound || rec.Header().Get("Location") != Prefix+"/#/"+p {
+			t.Errorf("%s: got %d %q", p, rec.Code, rec.Header().Get("Location"))
+		}
+	}
+	if rec := do(t, s, http.MethodGet, Prefix+"/nope", "", nil); rec.Code != http.StatusNotFound {
+		t.Errorf("unknown page: %d, want 404", rec.Code)
 	}
 }
