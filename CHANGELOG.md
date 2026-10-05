@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/fishingpvalues/airrbag/compare/v0.4.1...v0.5.0) (2026-10-05)
+
+
+### Features
+
+* qBittorrent 4.1+, libtorrent resume files, precise keep reasons, leaner README ([#15](https://github.com/fishingpvalues/airrbag/issues/15)) ([b3dc22a](https://github.com/fishingpvalues/airrbag/commit/b3dc22a0fdb81cb1cb64fb223654cd75af3ce125))
+
 ## [0.4.1](https://github.com/fishingpvalues/airrbag/compare/v0.4.0...v0.4.1) (2026-10-05)
 
 
