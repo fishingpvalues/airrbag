@@ -117,3 +117,25 @@ When the check itself cannot run and `guard.fail_closed` is on, the answer is
   or `?airrbagOverride=<reason>` on the DELETE itself, from a signed-in caller.
   Otherwise both are ignored. Either way they are removed before the request
   reaches the *Arr.
+
+## Verdict cause
+
+Every file verdict carries `cause`, the rule that produced it, and `reason`,
+the one-line sentence built from it. `unreachableClients` lists the torrent
+clients that could not be asked, when that matters.
+
+| cause | verdict | meaning |
+|---|---|---|
+| `seeds-from-file` | keep | a private torrent seeds from this exact file and is still owed |
+| `private-uncompared` | keep | a private torrent is still owed and its files could not be compared |
+| `client-unreachable` | keep | a torrent client is down, so a seed from this file cannot be ruled out |
+| `torrent-evidence` | keep | the file came from a torrent whose obligation cannot be checked |
+| `hardlink` | frees-nothing | a hardlink of the seeding file |
+| `unknown-hardlink` | frees-nothing | origin unknown, another hardlink holds the bytes |
+| `copy` | safe | an independent copy of the seed |
+| `seed-ends` | safe | the torrent seeds from this file but nothing is owed |
+| `torrent-gone` | safe | the torrent is no longer in the client |
+| `usenet`, `direct` | safe or frees-nothing | no swarm, nothing owed |
+| `no-history` | unknown | no evidence at all |
+| `uncompared` | unknown | public torrent, files could not be compared |
+| `file-missing` | safe | the library file no longer exists |

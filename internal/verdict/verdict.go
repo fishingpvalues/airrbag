@@ -40,6 +40,27 @@ const (
 	Unknown Kind = "unknown"
 )
 
+// Cause names the rule that produced a verdict, so messages can say exactly
+// why a file is kept instead of reusing one sentence for every path.
+type Cause string
+
+const (
+	CauseFileMissing       Cause = "file-missing"
+	CauseUsenet            Cause = "usenet"
+	CauseDirect            Cause = "direct"
+	CauseNoHistory         Cause = "no-history"
+	CauseUnknownHardlink   Cause = "unknown-hardlink"
+	CauseTorrentGone       Cause = "torrent-gone"
+	CauseSeedsFromFile     Cause = "seeds-from-file"
+	CauseSeedEnds          Cause = "seed-ends"
+	CauseHardlink          Cause = "hardlink"
+	CauseCopy              Cause = "copy"
+	CausePrivateUncompared Cause = "private-uncompared"
+	CauseUncompared        Cause = "uncompared"
+	CauseClientUnreachable Cause = "client-unreachable"
+	CauseTorrentEvidence   Cause = "torrent-evidence"
+)
+
 // Protocol is how the file was downloaded.
 type Protocol string
 
@@ -90,7 +111,10 @@ type Input struct {
 	Obligation  Obligation
 	// ClientUnreachable is true when the torrent client could not be asked.
 	ClientUnreachable bool
-	FailClosed        bool
+	// UnreachableClients names the clients that could not be asked, for the
+	// message ("can't reach qBittorrent").
+	UnreachableClients []string
+	FailClosed         bool
 	// TorrentEvidence is true when anything points at a torrent origin
 	// (history, a private indexer, a tracker, a torrent with the same name
 	// or bytes) even though the torrent itself could not be examined.
@@ -107,6 +131,7 @@ type Result struct {
 	// Relation is "same-path", "hardlink", "copy", "none" or "unknown".
 	Relation string   `json:"relation"`
 	Reasons  []string `json:"reasons"`
+	Cause    Cause    `json:"cause"`
 }
 
 // Decide applies the rules. It never touches the filesystem or the network.
@@ -119,7 +144,13 @@ func Decide(in Input) Result {
 	res := decide(in)
 	if res.Verdict == Unknown && (in.TorrentEvidence || in.PrivateIndexer || in.Protocol == ProtoTorrent || in.Torrent != nil) {
 		res.Verdict = Keep
-		res.Reasons = append(res.Reasons, "there is torrent evidence but its seeding obligation cannot be checked: keeping")
+		if in.ClientUnreachable || len(in.UnreachableClients) > 0 {
+			res.Cause = CauseClientUnreachable
+			res.Reasons = append(res.Reasons, "a torrent client could not be asked, so a seed from this file cannot be ruled out: keeping")
+		} else {
+			res.Cause = CauseTorrentEvidence
+			res.Reasons = append(res.Reasons, "there is torrent evidence but its seeding obligation cannot be checked: keeping")
+		}
 	}
 	return res
 }
@@ -130,6 +161,7 @@ func decide(in Input) Result {
 		res.Verdict = Safe
 		res.Relation = "none"
 		res.Reasons = append(res.Reasons, "library file does not exist")
+		res.Cause = CauseFileMissing
 		return res
 	}
 
@@ -142,12 +174,14 @@ func decide(in Input) Result {
 
 	switch in.Protocol {
 	case ProtoUsenet:
+		res.Cause = CauseUsenet
 		return decideUnshared(res, in, "downloaded over Usenet: no seeding obligation")
 	case ProtoDirect:
 		src := in.DirectSource
 		if src == "" {
 			src = "a direct downloader"
 		}
+		res.Cause = CauseDirect
 		return decideUnshared(res, in, "downloaded by "+src+": no swarm, no seeding obligation")
 	case ProtoTorrent:
 		return decideTorrent(res, in)
@@ -156,10 +190,12 @@ func decide(in Input) Result {
 			res.Verdict = FreesNothing
 			res.Relation = "hardlink"
 			res.Reasons = append(res.Reasons, "source unknown; another hardlink still holds these bytes")
+			res.Cause = CauseUnknownHardlink
 			return res
 		}
 		res.Verdict = Unknown
 		res.Reasons = append(res.Reasons, "no download history for this file")
+		res.Cause = CauseNoHistory
 		return res
 	}
 }
@@ -170,6 +206,9 @@ func decideUnshared(res Result, in Input, why string) Result {
 		res.Verdict = FreesNothing
 		res.Relation = "hardlink"
 		res.Reasons = append(res.Reasons, "another hardlink still holds these bytes")
+		if res.Cause == "" {
+			res.Cause = CauseHardlink
+		}
 		return res
 	}
 	res.Verdict = Safe
@@ -181,6 +220,7 @@ func decideTorrent(res Result, in Input) Result {
 	res.Private = in.PrivateIndexer
 	if in.Torrent == nil {
 		if in.ClientUnreachable {
+			res.Cause = CauseClientUnreachable
 			if in.PrivateIndexer && in.FailClosed {
 				res.Verdict = Keep
 				res.Reasons = append(res.Reasons, "torrent client unreachable and the indexer is private: failing closed")
@@ -190,6 +230,7 @@ func decideTorrent(res Result, in Input) Result {
 			res.Reasons = append(res.Reasons, "torrent client unreachable")
 			return res
 		}
+		res.Cause = CauseTorrentGone
 		return decideUnshared(res, in, "torrent no longer in the client: nothing seeds from this file")
 	}
 
@@ -213,18 +254,22 @@ func decideTorrent(res Result, in Input) Result {
 	case "same-path":
 		if res.Private && !obligationMet {
 			res.Verdict = Keep
+			res.Cause = CauseSeedsFromFile
 			res.Reasons = append(res.Reasons, "the torrent seeds from this exact file: deleting it is a hit-and-run")
 			return res
 		}
 		res.Verdict = Safe
+		res.Cause = CauseSeedEnds
 		res.Reasons = append(res.Reasons, "the torrent seeds from this file; deleting it stops the torrent")
 		return res
 	case "hardlink":
 		res.Verdict = FreesNothing
+		res.Cause = CauseHardlink
 		res.Reasons = append(res.Reasons, "hardlink of the seeding file: the seed survives, but no space is freed until the torrent goes")
 		return res
 	case "copy":
 		res.Verdict = Safe
+		res.Cause = CauseCopy
 		res.Reasons = append(res.Reasons, "independent copy: the seed has its own bytes")
 		return res
 	default:
@@ -232,10 +277,12 @@ func decideTorrent(res Result, in Input) Result {
 		// be conservative for private torrents.
 		if res.Private && !obligationMet {
 			res.Verdict = Keep
+			res.Cause = CausePrivateUncompared
 			res.Reasons = append(res.Reasons, "could not compare files with the torrent; private and still owed: keeping")
 			return res
 		}
 		res.Verdict = Unknown
+		res.Cause = CauseUncompared
 		res.Reasons = append(res.Reasons, "could not compare files with the torrent")
 		return res
 	}

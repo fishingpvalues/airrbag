@@ -2,58 +2,49 @@ package proxy
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/fishingpvalues/airrbag/internal/engine"
+	"github.com/fishingpvalues/airrbag/internal/verdict"
 )
 
-// humanDuration renders a seeding time the way the dashboard does: "3d 4h",
-// "5h 12m", "40m".
-func humanDuration(d time.Duration) string {
-	if d < time.Minute {
-		return fmt.Sprintf("%ds", int(d.Seconds()))
+// KeepMessage is the one-line refusal shown in the *Arr UI when the guard
+// blocks a delete. The wording follows the first kept file's cause, so a
+// file kept because a client was down is not described as seeding data.
+func KeepMessage(keep []engine.FileVerdict) string {
+	if len(keep) == 0 {
+		return "airrbag: blocked. Confirm in the airrbag dialog to delete anyway."
 	}
-	days, h, m := int(d.Hours())/24, int(d.Hours())%24, int(d.Minutes())%60
-	switch {
-	case days > 0 && h == 0:
-		return fmt.Sprintf("%dd", days)
-	case days > 0:
-		return fmt.Sprintf("%dd %dh", days, h)
-	case h > 0:
-		return fmt.Sprintf("%dh %dm", h, m)
-	default:
-		return fmt.Sprintf("%dm", m)
+	first := keep[0]
+	tail := " " + nextStep(first)
+	what := engine.Summary(first)
+	if what == "" {
+		what = "this file is protected"
 	}
+	if len(keep) == 1 {
+		return "airrbag: kept, " + what + "." + tail
+	}
+	return fmt.Sprintf("airrbag: kept %d files. The first: %s.", len(keep), what) + tail
 }
 
-// seedFacts is "on tracker.example (seeded 3d of 14d required)" for one file,
-// with whatever parts are known.
-func seedFacts(f engine.FileVerdict) string {
-	out := ""
-	if f.Tracker != "" {
-		out = " on " + f.Tracker
-	}
-	if f.SeedingTime != nil {
-		seeded := humanDuration(time.Duration(*f.SeedingTime) * time.Second)
-		if f.RequiredSeedTime != nil {
-			out += fmt.Sprintf(" (seeded %s of %s required)", seeded, humanDuration(time.Duration(*f.RequiredSeedTime)*time.Second))
-		} else {
-			out += fmt.Sprintf(" (seeded %s, requirement unknown)", seeded)
+// KeepDescription is the longer second line of the refusal.
+func KeepDescription(keep []engine.FileVerdict) string {
+	if len(keep) > 0 {
+		switch keep[0].Cause {
+		case verdict.CauseClientUnreachable:
+			return "A torrent client could not be asked. Until it answers, airrbag cannot tell whether deleting this ends a private seed that is still owed."
+		case verdict.CauseTorrentEvidence, verdict.CausePrivateUncompared:
+			return "This came from a torrent whose seeding obligation airrbag cannot check. Deleting it could be a hit-and-run."
 		}
 	}
-	return out
+	return "Deleting now ends a private-tracker seed whose obligation is not met: a hit-and-run."
 }
 
-// KeepMessage is the one-line refusal shown in the *Arr UI when the guard
-// blocks a delete.
-func KeepMessage(keep []engine.FileVerdict) string {
-	const tail = " Delete the torrent first or confirm in the airrbag dialog."
-	switch len(keep) {
-	case 0:
-		return "airrbag: blocked." + tail
-	case 1:
-		return "airrbag: kept, this file is the seeding data of a private torrent" + seedFacts(keep[0]) + "." + tail
-	default:
-		return fmt.Sprintf("airrbag: kept, %d files are the seeding data of private torrents, e.g.%s.", len(keep), seedFacts(keep[0])) + tail
+func nextStep(f engine.FileVerdict) string {
+	switch f.Cause {
+	case verdict.CauseClientUnreachable:
+		return "Bring the torrent client back, or confirm in the airrbag dialog."
+	case verdict.CauseSeedsFromFile, verdict.CausePrivateUncompared:
+		return "Delete the torrent first, or confirm in the airrbag dialog."
 	}
+	return "Confirm in the airrbag dialog to delete anyway."
 }

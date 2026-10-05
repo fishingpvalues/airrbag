@@ -656,6 +656,7 @@ func (s *Server) refuse(w http.ResponseWriter, r *http.Request, keep, unknown []
 	description := "Deleting now ends a private-tracker seed whose obligation is not met: a hit-and-run."
 	if len(keep) > 0 {
 		msg = KeepMessage(keep)
+		description = KeepDescription(keep)
 		s.record(r, hub.Blocked, "a private seed is still owed", keep, "")
 	} else if s.o.Guard.UnknownMode() == config.UnknownConfirm {
 		description = "airrbag found no evidence of where these files came from. Confirm in the airrbag dialog to delete."

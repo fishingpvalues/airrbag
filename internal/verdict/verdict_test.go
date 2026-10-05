@@ -159,3 +159,49 @@ func TestDecide(t *testing.T) {
 		})
 	}
 }
+
+// Every decision path names its cause, so messages never reuse one sentence
+// for different reasons (a client-down keep is not "seeding data").
+func TestDecideCause(t *testing.T) {
+	hardTorrent := torrent(true)
+	hardTorrent.ContentPath = "/seed/Y"
+	hardTorrent.Files = []string{"/seed/Y/a.mkv"}
+	tests := []struct {
+		name string
+		in   Input
+		want Kind
+		c    Cause
+	}{
+		{"missing", Input{Path: "/lib/a.mkv", Protocol: ProtoTorrent}, Safe, CauseFileMissing},
+		{"usenet", Input{Path: "/lib/a.mkv", File: lib, Protocol: ProtoUsenet}, Safe, CauseUsenet},
+		{"usenet hardlinked", Input{Path: "/lib/a.mkv", File: libLink, Protocol: ProtoUsenet}, FreesNothing, CauseUsenet},
+		{"direct", Input{Path: "/lib/a.mkv", File: lib, Protocol: ProtoDirect}, Safe, CauseDirect},
+		{"no history", Input{Path: "/lib/a.mkv", File: lib, Protocol: ProtoUnknown}, Unknown, CauseNoHistory},
+		{"no history, hardlinked", Input{Path: "/lib/a.mkv", File: libLink, Protocol: ProtoUnknown}, FreesNothing, CauseUnknownHardlink},
+		{"torrent gone", Input{Path: "/lib/a.mkv", File: lib, Protocol: ProtoTorrent}, Safe, CauseTorrentGone},
+		{"seeds from file", Input{Path: "/seed/X/a.mkv", File: lib, Protocol: ProtoTorrent,
+			Torrent: torrent(true, "/seed/X/a.mkv"), Obligation: ob{false}}, Keep, CauseSeedsFromFile},
+		{"seed ends, obligation met", Input{Path: "/seed/X/a.mkv", File: lib, Protocol: ProtoTorrent,
+			Torrent: torrent(true, "/seed/X/a.mkv"), Obligation: ob{true}}, Safe, CauseSeedEnds},
+		{"hardlink of seed", Input{Path: "/lib/a.mkv", File: libLink, Protocol: ProtoTorrent,
+			Torrent: hardTorrent, TorrentFiles: []fsx.Info{seedSame}, Obligation: ob{false}}, FreesNothing, CauseHardlink},
+		{"copy of seed", Input{Path: "/lib/a.mkv", File: lib, Protocol: ProtoTorrent,
+			Torrent: hardTorrent, TorrentFiles: []fsx.Info{seedCopy}, Obligation: ob{false}}, Safe, CauseCopy},
+		{"private, files not comparable", Input{Path: "/lib/a.mkv", File: lib, Protocol: ProtoTorrent,
+			Torrent: hardTorrent, Obligation: ob{false}}, Keep, CausePrivateUncompared},
+		{"client unreachable, private indexer", Input{Path: "/lib/a.mkv", File: lib, Protocol: ProtoTorrent,
+			ClientUnreachable: true, PrivateIndexer: true, FailClosed: true}, Keep, CauseClientUnreachable},
+		{"client unreachable, public, torrent history", Input{Path: "/lib/a.mkv", File: lib, Protocol: ProtoTorrent,
+			ClientUnreachable: true}, Keep, CauseClientUnreachable},
+		{"no history, clients down", Input{Path: "/lib/a.mkv", File: lib, Protocol: ProtoUnknown,
+			TorrentEvidence: true, UnreachableClients: []string{"qB"}}, Keep, CauseClientUnreachable},
+		{"no history, name evidence", Input{Path: "/lib/a.mkv", File: lib, Protocol: ProtoUnknown,
+			TorrentEvidence: true}, Keep, CauseTorrentEvidence},
+	}
+	for _, tc := range tests {
+		res := Decide(tc.in)
+		if res.Verdict != tc.want || res.Cause != tc.c {
+			t.Errorf("%s: got %s/%s, want %s/%s (%v)", tc.name, res.Verdict, res.Cause, tc.want, tc.c, res.Reasons)
+		}
+	}
+}

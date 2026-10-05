@@ -79,6 +79,11 @@ type FileVerdict struct {
 	ObligationMet    *bool    `json:"obligationMet,omitempty"`
 	// Reason is the one-line summary of the verdict for a tooltip or dialog.
 	Reason string `json:"reason"`
+	// Cause is the rule that produced the verdict (verdict.Cause), so a UI
+	// or message can tell "seeds from this file" from "client unreachable".
+	Cause verdict.Cause `json:"cause"`
+	// UnreachableClients names the torrent clients that could not be asked.
+	UnreachableClients []string `json:"unreachableClients,omitempty"`
 	// Evidence is the chain of facts behind the protocol: which source proved
 	// what (history, inode match, client history, indexer proxy, name match).
 	Evidence []string `json:"evidence"`
@@ -365,6 +370,7 @@ func (e *Engine) Evaluate(ctx context.Context, f arr.File, idx *arr.Index) FileV
 
 	res := verdict.Decide(in)
 	fv.Verdict, fv.Protocol, fv.Private, fv.Relation, fv.Reasons = res.Verdict, res.Protocol, res.Private, res.Relation, res.Reasons
+	fv.Cause, fv.UnreachableClients = res.Cause, in.UnreachableClients
 	if statErr != nil && errors.Is(statErr, fsx.ErrUnsupported) {
 		fv.Reasons = append(fv.Reasons, "inode identity unavailable on this platform")
 	}
@@ -385,7 +391,8 @@ func describeHistory(p arr.Provenance) string {
 
 // finish fills the presentation fields every verdict carries.
 func (e *Engine) finish(fv *FileVerdict) {
-	if len(fv.Reasons) > 0 {
+	fv.Reason = Summary(*fv)
+	if fv.Reason == "" && len(fv.Reasons) > 0 {
 		fv.Reason = fv.Reasons[len(fv.Reasons)-1]
 	}
 	switch fv.Verdict {
@@ -394,9 +401,6 @@ func (e *Engine) finish(fv *FileVerdict) {
 	case verdict.Unknown:
 		fv.Severity = "warning"
 		fv.NeedsConfirm = !strings.EqualFold(e.o.UnknownMode, "allow")
-		if fv.Reason == "" || fv.Reason == "no download history for this file" {
-			fv.Reason = "airrbag can't prove where this file came from"
-		}
 	case verdict.FreesNothing:
 		fv.Severity = "info"
 	default:
@@ -427,6 +431,7 @@ func (e *Engine) gatherEvidence(ctx context.Context, in *verdict.Input, fv *File
 		// download, so a seed cannot be ruled out: fail closed, whatever
 		// guard.unknown says.
 		in.TorrentEvidence = true
+		in.UnreachableClients = append([]string(nil), ev.torrentsErr...)
 		fv.Evidence = append(fv.Evidence, "torrent client(s) unreachable: "+strings.Join(ev.torrentsErr, ", ")+
 			"; a seed from this file cannot be ruled out")
 	case len(e.o.Torrent) == 0 && len(e.o.Usenet) == 0:
@@ -538,11 +543,11 @@ func (e *Engine) attachTorrent(ctx context.Context, in *verdict.Input, fv *FileV
 		return
 	}
 	var (
-		name    string
-		c       clients.TorrentClient
-		t       clients.Torrent
-		found   bool
-		anyFail bool
+		name   string
+		c      clients.TorrentClient
+		t      clients.Torrent
+		found  bool
+		failed []string
 	)
 	// By info hash first, across every client; then by path (seed in place
 	// without, or beyond, *Arr history).
@@ -551,7 +556,9 @@ func (e *Engine) attachTorrent(ctx context.Context, in *verdict.Input, fv *FileV
 			cl := e.o.Torrent[n]
 			s := e.snapshot(ctx, n, cl)
 			if s.err != nil {
-				anyFail = true
+				if pass == 0 {
+					failed = append(failed, n)
+				}
 				continue
 			}
 			if pass == 0 {
@@ -573,8 +580,9 @@ func (e *Engine) attachTorrent(ctx context.Context, in *verdict.Input, fv *FileV
 	if !found {
 		// A client we could not ask might hold the torrent: never conclude
 		// "gone" from a partial view.
-		if anyFail && in.Protocol == verdict.ProtoTorrent {
+		if len(failed) > 0 && in.Protocol == verdict.ProtoTorrent {
 			in.ClientUnreachable = true
+			in.UnreachableClients = failed
 		}
 		return
 	}
