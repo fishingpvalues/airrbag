@@ -8,6 +8,7 @@ package config
 import (
 	"errors"
 	"fmt"
+	"io/fs"
 	"net/netip"
 	"net/url"
 	"os"
@@ -248,6 +249,12 @@ func LoadWithWarnings(path string) (*Config, []string, error) {
 	var warnings []string
 	raw, err := os.ReadFile(path) //nolint:gosec // operator-chosen config path
 	if err != nil {
+		if errors.Is(err, fs.ErrPermission) {
+			return nil, nil, fmt.Errorf("read config %s: permission denied for uid %d gid %d: "+
+				"make the file readable by this user (e.g. chmod 640 with group %d, or 644 when it holds only "+
+				"${VAR}/${file:...} references), or run the container as the file's owner: %w",
+				path, os.Getuid(), os.Getgid(), os.Getgid(), err)
+		}
 		return nil, nil, fmt.Errorf("read config: %w", err)
 	}
 	raw, err = maybeDecrypt(raw)

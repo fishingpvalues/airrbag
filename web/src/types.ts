@@ -22,6 +22,10 @@ export interface FileVerdict {
   seedingTimeSeconds?: number;
   torrentName?: string;
   torrentState?: string;
+  reason?: string;
+  evidence?: string[];
+  severity?: "danger" | "warning" | "info" | "ok";
+  needsConfirm?: boolean;
 }
 
 export interface CheckResponse {

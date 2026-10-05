@@ -75,6 +75,9 @@ func main() {
 	case "serve":
 		if err := serve(*cfgPath); err != nil {
 			slog.Error("airrbag stopped", "err", err)
+			// Plain text too: a JSON log line is easy to miss in `docker logs`
+			// when the container exits immediately.
+			fmt.Fprintln(os.Stderr, "airrbag: "+err.Error())
 			os.Exit(1)
 		}
 	default:

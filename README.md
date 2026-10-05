@@ -257,7 +257,7 @@ when a key or password is still a template value such as `changeme` or
 | `guard.enabled` | `true` | Refuse deletes of `keep` files |
 | `guard.dry_run` | `false` | Log instead of refusing |
 | `guard.fail_closed` | `true` | A check that cannot run (an *Arr or client error) answers 503 |
-| `guard.unknown` | `confirm` | Delete of a file with no provenance evidence: `confirm` asks once in the UI and lets API callers through with a WARN and `airrbag_unknown_deletes_total`; `block` refuses (409) without a grant; `allow` only shows the badge |
+| `guard.unknown` | `confirm` | Delete of a file with no provenance evidence: `confirm` asks once in the UI (a browser delete without the dialog's grant is refused) and lets API callers through with a WARN and `airrbag_unknown_deletes_total`; `block` refuses (409) without a grant; `allow` only shows the badge |
 | `guard.grant_ttl` | `60s` | Lifetime of a confirmation given in the dialog (max `10m`) |
 | `guard.allow_override_header` | `false` | Honor `X-Airrbag-Override` / `?airrbagOverride=` from signed-in API callers |
 | `auth.trusted_proxies[]` | none | CIDRs/IPs of reverse proxies in front; only from these is `X-Forwarded-For` believed |
@@ -386,6 +386,12 @@ NZBHydra2 or the direct-download folder gives airrbag more to match;
 **`frees-nothing` and `safe` look wrong.** The paths are not mapped. Compare
 `path` in `/__airrbag/api/files?parentId=<id>` with where the file is inside
 the airrbag container.
+
+**Lidarr answers `400 Invalid Hostname`.** airrbag passes the browser's
+`Host` header through unchanged, so Lidarr checks the name you typed against
+its own `allowedHosts`. Add that name there (Settings > General), or open the
+UI by a name Lidarr already allows. Calls made inside the docker network
+with `Host: airrbag:<port>` hit the same check.
 
 **A delete is refused with 503.** airrbag could not reach the *Arr or a
 download client and `guard.fail_closed` is on. Fix the client, or confirm in

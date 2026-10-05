@@ -109,3 +109,17 @@ func TestUnknownMode(t *testing.T) {
 		}
 	}
 }
+
+func TestUnreadableConfigSaysWhy(t *testing.T) {
+	if os.Getuid() == 0 {
+		t.Skip("root reads any file")
+	}
+	p := filepath.Join(t.TempDir(), "airrbag.yml")
+	if err := os.WriteFile(p, []byte("instances: []\n"), 0o000); err != nil {
+		t.Fatal(err)
+	}
+	_, err := Load(p)
+	if err == nil || !strings.Contains(err.Error(), "permission denied for uid") || !strings.Contains(err.Error(), "chmod 640") {
+		t.Fatalf("want a clear permission error, got %v", err)
+	}
+}

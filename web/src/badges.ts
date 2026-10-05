@@ -27,9 +27,9 @@ async function load(path: string): Promise<{ parentId: number; files: FileVerdic
   if (hit && Date.now() - hit.at < TTL) return hit;
   const r = await api("/resolve?path=" + encodeURIComponent(path));
   if (!r.ok) return null;
-  const { parentId } = (await r.json()) as { parentId: number };
+  const { parentId, albumId } = (await r.json()) as { parentId: number; albumId?: number };
   if (!parentId) return null;
-  const f = await api("/files?parentId=" + parentId);
+  const f = await api("/files?parentId=" + parentId + (albumId ? "&albumId=" + albumId : ""));
   if (!f.ok) return null;
   const { files } = (await f.json()) as { files: FileVerdict[] };
   const entry = { at: Date.now(), parentId, files: files || [] };
@@ -37,8 +37,13 @@ async function load(path: string): Promise<{ parentId: number; files: FileVerdic
   return entry;
 }
 
+// The panel's accent follows the most important verdict, not the source: a
+// private torrent whose library file is only a hardlink is "frees nothing"
+// (info), never the red of a kept seed.
 function summaryColor(files: FileVerdict[]): string {
   if (files.some((f) => f.verdict === "keep")) return COLORS.keep;
+  if (files.some((f) => f.verdict === "unknown")) return COLORS.unknown;
+  if (files.some((f) => f.verdict === "frees-nothing")) return COLORS["frees-nothing"];
   if (files.some((f) => f.protocol === "torrent" && f.private)) return COLORS.private;
   if (files.some((f) => f.protocol === "torrent")) return COLORS.torrent;
   if (files.some((f) => f.protocol === "usenet")) return COLORS.usenet;
@@ -155,6 +160,15 @@ function schedule(): void {
     timer = undefined;
     render().catch(() => undefined);
   }, 300);
+}
+
+// Called after a delete went through: the cached verdicts are stale.
+export function invalidateBadges(): void {
+  cache.clear();
+  document.querySelectorAll("[data-airrbag='panel']").forEach((n) => n.remove());
+  document.querySelectorAll("[data-airrbag='cell']").forEach((n) => n.remove());
+  // The *Arr re-renders its file list after the delete; wait for it.
+  window.setTimeout(schedule, 800);
 }
 
 export function startBadges(): void {

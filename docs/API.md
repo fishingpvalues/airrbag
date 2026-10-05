@@ -96,9 +96,11 @@ A DELETE the guard refuses answers `409 Conflict`:
 }
 ```
 
-`reason` is `keep` when any file is `keep`, else `unknown` (only with
-`guard.unknown: block`; the message then reads "provenance unknown: airrbag
-could not prove this file is safe to delete"). `message` is the field the
+`reason` is `keep` when any file is `keep`, else `unknown`: with
+`guard.unknown: block` for every caller, and with the default `confirm` for a
+browser request (`Sec-Fetch-*` or a cookie) that arrives without the dialog's
+grant. The message then reads "provenance unknown: airrbag could not prove
+this file is safe to delete". `message` is the field the
 *Arr frontends print in their own error toast.
 
 When the check itself cannot run and `guard.fail_closed` is on, the answer is

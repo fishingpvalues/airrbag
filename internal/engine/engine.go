@@ -180,7 +180,7 @@ func (e *Engine) currentIndex(ctx context.Context) *arr.Index {
 	e.mu.Unlock()
 	if stale {
 		if err := e.RefreshIndex(ctx); err != nil {
-			e.o.Log.Warn("history index refresh failed", "instance", e.o.Instance, "err", err)
+			e.o.Log.Warn("history index refresh failed", "err", err)
 		}
 		e.mu.Lock()
 		idx = e.index
@@ -422,7 +422,13 @@ func (e *Engine) gatherEvidence(ctx context.Context, in *verdict.Input, fv *File
 	}
 	switch {
 	case len(ev.torrentsErr) > 0:
-		fv.Evidence = append(fv.Evidence, "torrent client(s) unreachable: "+strings.Join(ev.torrentsErr, ", "))
+		// A client we could not ask may hold a torrent that seeds from this
+		// very file. Nothing proved the file is from Usenet or a direct
+		// download, so a seed cannot be ruled out: fail closed, whatever
+		// guard.unknown says.
+		in.TorrentEvidence = true
+		fv.Evidence = append(fv.Evidence, "torrent client(s) unreachable: "+strings.Join(ev.torrentsErr, ", ")+
+			"; a seed from this file cannot be ruled out")
 	case len(e.o.Torrent) == 0 && len(e.o.Usenet) == 0:
 		fv.Evidence = append(fv.Evidence, "no download clients configured to compare with")
 	default:
@@ -625,6 +631,39 @@ func (e *Engine) ParentFiles(ctx context.Context, parentID int) ([]FileVerdict, 
 	if err != nil {
 		return nil, err
 	}
+	return e.evaluateFiles(ctx, parentID, files), nil
+}
+
+// AlbumResolver is implemented by *Arr clients that have albums (Lidarr).
+type AlbumResolver interface {
+	AlbumByForeignID(ctx context.Context, foreignID string) (albumID, artistID int, ok bool, err error)
+}
+
+// ResolveAlbum maps a Lidarr album page slug (its foreign album id) to the
+// album and its artist. ok is false for apps without albums.
+func (e *Engine) ResolveAlbum(ctx context.Context, slug string) (albumID, artistID int, ok bool, err error) {
+	ar, isAR := e.o.Arr.(AlbumResolver)
+	if !isAR {
+		return 0, 0, false, nil
+	}
+	return ar.AlbumByForeignID(ctx, slug)
+}
+
+// AlbumFiles evaluates the track files of one album.
+func (e *Engine) AlbumFiles(ctx context.Context, albumID, artistID int) ([]FileVerdict, error) {
+	files, err := e.o.Arr.FilesBy(ctx, "albumId", albumID)
+	if err != nil {
+		return nil, err
+	}
+	for i := range files {
+		if files[i].ParentID == 0 {
+			files[i].ParentID = artistID
+		}
+	}
+	return e.evaluateFiles(ctx, artistID, files), nil
+}
+
+func (e *Engine) evaluateFiles(ctx context.Context, parentID int, files []arr.File) []FileVerdict {
 	idx := e.currentIndex(ctx)
 	missing := false
 	for _, f := range files {
@@ -646,7 +685,7 @@ func (e *Engine) ParentFiles(ctx context.Context, parentID int) ([]FileVerdict, 
 		fv.ParentTitle = e.Title(ctx, parentID)
 		out = append(out, fv)
 	}
-	return out, nil
+	return out
 }
 
 // FilesByID evaluates specific file ids (the guard's bulk path).
