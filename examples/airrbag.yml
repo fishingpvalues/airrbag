@@ -33,6 +33,9 @@ clients:
   # Provenance sources the *Arr does not list:
   # - { name: NZBHydra2, type: nzbhydra2, url: http://nzbhydra2:5076 }  # api_key optional
   # - { name: Xunlei, type: xunlei, path: /media/downloads/xunlei }       # its download folder
+  # qBittorrent's resume files, mounted read-only: still answers when the
+  # WebUI is down. Map its paths with source: "qBittorrent resume".
+  # - { name: qBittorrent resume, type: libtorrent-resume, path: /resume/BT_backup }
 
 # Airrbag compares inodes, so it must see the same files the *Arr and the
 # torrent client see. Mount the media read-only into the Airrbag container
