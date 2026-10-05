@@ -79,6 +79,11 @@ type FileVerdict struct {
 	ObligationMet    *bool    `json:"obligationMet,omitempty"`
 	// Reason is the one-line summary of the verdict for a tooltip or dialog.
 	Reason string `json:"reason"`
+	// Cause is the rule that produced the verdict (verdict.Cause), so a UI
+	// or message can tell "seeds from this file" from "client unreachable".
+	Cause verdict.Cause `json:"cause"`
+	// UnreachableClients names the torrent clients that could not be asked.
+	UnreachableClients []string `json:"unreachableClients,omitempty"`
 	// Evidence is the chain of facts behind the protocol: which source proved
 	// what (history, inode match, client history, indexer proxy, name match).
 	Evidence []string `json:"evidence"`
@@ -365,6 +370,7 @@ func (e *Engine) Evaluate(ctx context.Context, f arr.File, idx *arr.Index) FileV
 
 	res := verdict.Decide(in)
 	fv.Verdict, fv.Protocol, fv.Private, fv.Relation, fv.Reasons = res.Verdict, res.Protocol, res.Private, res.Relation, res.Reasons
+	fv.Cause, fv.UnreachableClients = res.Cause, in.UnreachableClients
 	if statErr != nil && errors.Is(statErr, fsx.ErrUnsupported) {
 		fv.Reasons = append(fv.Reasons, "inode identity unavailable on this platform")
 	}
@@ -385,7 +391,8 @@ func describeHistory(p arr.Provenance) string {
 
 // finish fills the presentation fields every verdict carries.
 func (e *Engine) finish(fv *FileVerdict) {
-	if len(fv.Reasons) > 0 {
+	fv.Reason = Summary(*fv)
+	if fv.Reason == "" && len(fv.Reasons) > 0 {
 		fv.Reason = fv.Reasons[len(fv.Reasons)-1]
 	}
 	switch fv.Verdict {
@@ -394,9 +401,6 @@ func (e *Engine) finish(fv *FileVerdict) {
 	case verdict.Unknown:
 		fv.Severity = "warning"
 		fv.NeedsConfirm = !strings.EqualFold(e.o.UnknownMode, "allow")
-		if fv.Reason == "" || fv.Reason == "no download history for this file" {
-			fv.Reason = "airrbag can't prove where this file came from"
-		}
 	case verdict.FreesNothing:
 		fv.Severity = "info"
 	default:
@@ -427,6 +431,7 @@ func (e *Engine) gatherEvidence(ctx context.Context, in *verdict.Input, fv *File
 		// download, so a seed cannot be ruled out: fail closed, whatever
 		// guard.unknown says.
 		in.TorrentEvidence = true
+		in.UnreachableClients = append([]string(nil), ev.torrentsErr...)
 		fv.Evidence = append(fv.Evidence, "torrent client(s) unreachable: "+strings.Join(ev.torrentsErr, ", ")+
 			"; a seed from this file cannot be ruled out")
 	case len(e.o.Torrent) == 0 && len(e.o.Usenet) == 0:
@@ -537,44 +542,13 @@ func (e *Engine) attachTorrent(ctx context.Context, in *verdict.Input, fv *FileV
 		}
 		return
 	}
-	var (
-		name    string
-		c       clients.TorrentClient
-		t       clients.Torrent
-		found   bool
-		anyFail bool
-	)
-	// By info hash first, across every client; then by path (seed in place
-	// without, or beyond, *Arr history).
-	for pass := 0; pass < 2 && !found; pass++ {
-		for _, n := range names {
-			cl := e.o.Torrent[n]
-			s := e.snapshot(ctx, n, cl)
-			if s.err != nil {
-				anyFail = true
-				continue
-			}
-			if pass == 0 {
-				if prov.InfoHash == "" {
-					continue
-				}
-				if tt, ok := s.torrents[prov.InfoHash]; ok {
-					name, c, t, found = n, cl, tt, true
-					break
-				}
-				continue
-			}
-			if h, ok := s.findByContent(in.Path); ok {
-				name, c, t, found = n, cl, s.torrents[h], true
-				break
-			}
-		}
-	}
+	name, c, t, found, failed := e.findTorrent(ctx, names, prov.InfoHash, in.Path)
 	if !found {
 		// A client we could not ask might hold the torrent: never conclude
 		// "gone" from a partial view.
-		if anyFail && in.Protocol == verdict.ProtoTorrent {
+		if len(failed) > 0 && in.Protocol == verdict.ProtoTorrent {
 			in.ClientUnreachable = true
+			in.UnreachableClients = failed
 		}
 		return
 	}
@@ -583,6 +557,7 @@ func (e *Engine) attachTorrent(ctx context.Context, in *verdict.Input, fv *FileV
 		e.o.Log.Debug("torrent files failed", "hash", t.Hash, "err", err)
 	}
 	host := e.trackerHost(ctx, c, t)
+	seedKnown := e.fillSeedingTime(ctx, c, &t)
 	vt := &verdict.Torrent{
 		Hash: t.Hash, Name: t.Name, Private: e.privateFlag(ctx, c, t), Tracker: host,
 		Ratio: t.Ratio, SeedingTime: t.SeedingTime, State: t.State,
@@ -602,9 +577,63 @@ func (e *Engine) attachTorrent(ctx context.Context, in *verdict.Input, fv *FileV
 			in.TorrentFiles = append(in.TorrentFiles, fi)
 		}
 	}
-	ratio, secs := t.Ratio, int64(t.SeedingTime/time.Second)
-	fv.Ratio, fv.SeedingTime = &ratio, &secs
+	ratio := t.Ratio
+	fv.Ratio = &ratio
+	if seedKnown {
+		secs := int64(t.SeedingTime / time.Second)
+		fv.SeedingTime = &secs
+	}
 	fv.Tracker, fv.TorrentName, fv.TorrentState = host, t.Name, t.State
+}
+
+// findTorrent looks for the torrent behind a file across the given clients:
+// by info hash first, then by path (seed in place without, or beyond, *Arr
+// history). failed lists the clients that could not be asked.
+func (e *Engine) findTorrent(ctx context.Context, names []string, hash, libPath string) (string, clients.TorrentClient, clients.Torrent, bool, []string) {
+	var failed []string
+	for pass := 0; pass < 2; pass++ {
+		for _, n := range names {
+			cl := e.o.Torrent[n]
+			s := e.snapshot(ctx, n, cl)
+			if s.err != nil {
+				if pass == 0 {
+					failed = append(failed, n)
+				}
+				continue
+			}
+			if pass == 0 {
+				if tt, ok := s.torrents[hash]; ok && hash != "" {
+					return n, cl, tt, true, failed
+				}
+				continue
+			}
+			if h, ok := s.findByContent(libPath); ok {
+				return n, cl, s.torrents[h], true, failed
+			}
+		}
+	}
+	return "", nil, clients.Torrent{}, false, failed
+}
+
+// fillSeedingTime asks a SeedTimer for a torrent whose list entry had no
+// seeding time (qBittorrent before 4.4). If that fails too it stays 0: an
+// obligation then reads as not met, which keeps the seed (fail closed). It
+// reports whether the seeding time is known.
+func (e *Engine) fillSeedingTime(ctx context.Context, c clients.TorrentClient, t *clients.Torrent) bool {
+	if !t.SeedingTimeUnknown {
+		return true
+	}
+	st, ok := c.(clients.SeedTimer)
+	if !ok {
+		return false
+	}
+	d, err := st.SeedingTime(ctx, t.Hash)
+	if err != nil {
+		e.o.Log.Debug("seeding time failed", "hash", t.Hash, "err", err)
+		return false
+	}
+	t.SeedingTime = d
+	return true
 }
 
 // setObligation copies the tracker's seeding requirement onto the verdict,

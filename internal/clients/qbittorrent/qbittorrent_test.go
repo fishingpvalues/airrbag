@@ -34,6 +34,9 @@ func fakeQB(t *testing.T, v5 bool) *httptest.Server {
 			h(w, r)
 		}
 	}
+	mux.HandleFunc("/api/v2/app/webapiVersion", authed(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte("2.8.3"))
+	}))
 	mux.HandleFunc("/api/v2/torrents/info", authed(func(w http.ResponseWriter, r *http.Request) {
 		priv := ""
 		if v5 {

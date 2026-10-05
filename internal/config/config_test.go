@@ -123,3 +123,20 @@ func TestUnreadableConfigSaysWhy(t *testing.T) {
 		t.Fatalf("want a clear permission error, got %v", err)
 	}
 }
+
+func TestLibtorrentResumeValidation(t *testing.T) {
+	base := "instances:\n  - {name: a, listen: ':1', upstream: 'http://x', api_key: k}\nclients:\n"
+	for in, ok := range map[string]bool{
+		"  - {name: r, type: libtorrent-resume, path: /resume}\n":                                true,
+		"  - {name: r, type: libtorrent-resume, path: /resume, layout: deluge}\n":                true,
+		"  - {name: r, type: libtorrent-resume, path: /t, layout: torrents, save_path: /data}\n": true,
+		"  - {name: r, type: libtorrent-resume}\n":                                               false,
+		"  - {name: r, type: libtorrent-resume, path: /t, layout: torrents}\n":                   false,
+		"  - {name: r, type: libtorrent-resume, path: /t, layout: sqlite}\n":                     false,
+	} {
+		_, err := Parse([]byte(base + in))
+		if (err == nil) != ok {
+			t.Errorf("%q: err=%v, want ok=%v", in, err, ok)
+		}
+	}
+}

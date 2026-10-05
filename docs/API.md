@@ -1,5 +1,26 @@
 # API
 
+## Routes
+
+Under each listener, next to the proxied *Arr. Requires *Arr credentials.
+
+| Route | Purpose |
+|-------|---------|
+| `GET /__airrbag/api/files?parentId=` | Verdicts for one movie, series, artist or author |
+| `GET /__airrbag/api/resolve?path=` | UI route to parent id |
+| `POST /__airrbag/api/check` | What a given DELETE would remove |
+| `POST /__airrbag/api/grant` | Single-use confirmation for one DELETE |
+| `GET /__airrbag/api/lists` | Whole-library grouping |
+| `GET /__airrbag/api/info` | App, guard state, version |
+| `GET /__airrbag/api/dashboard/overview` | Counts and sizes per verdict and instance, client health |
+| `GET /__airrbag/api/dashboard/files` | Paged, sorted, filtered files of all instances (`instance`, `verdict`, `source`, `q`, `sort`, `dir`, `page`, `pageSize`) |
+| `GET /__airrbag/api/dashboard/guard` | Recent guard decisions |
+| `GET /__airrbag/api/dashboard/settings` | Effective configuration, redacted |
+| `GET /__airrbag/api/dashboard/clients?fresh=1` | Download-client connectivity |
+| `GET /__airrbag/api/dashboard/system` | Version, uptime, instances |
+
+
+
 Airrbag's own endpoints live under each listener, next to the proxied *Arr,
 at `/__airrbag/`. They require the same credentials as the *Arr (session
 cookie, `X-Api-Key` header or `apikey` query parameter, or a trusted SSO
@@ -117,3 +138,25 @@ When the check itself cannot run and `guard.fail_closed` is on, the answer is
   or `?airrbagOverride=<reason>` on the DELETE itself, from a signed-in caller.
   Otherwise both are ignored. Either way they are removed before the request
   reaches the *Arr.
+
+## Verdict cause
+
+Every file verdict carries `cause`, the rule that produced it, and `reason`,
+the one-line sentence built from it. `unreachableClients` lists the torrent
+clients that could not be asked, when that matters.
+
+| cause | verdict | meaning |
+|---|---|---|
+| `seeds-from-file` | keep | a private torrent seeds from this exact file and is still owed |
+| `private-uncompared` | keep | a private torrent is still owed and its files could not be compared |
+| `client-unreachable` | keep | a torrent client is down, so a seed from this file cannot be ruled out |
+| `torrent-evidence` | keep | the file came from a torrent whose obligation cannot be checked |
+| `hardlink` | frees-nothing | a hardlink of the seeding file |
+| `unknown-hardlink` | frees-nothing | origin unknown, another hardlink holds the bytes |
+| `copy` | safe | an independent copy of the seed |
+| `seed-ends` | safe | the torrent seeds from this file but nothing is owed |
+| `torrent-gone` | safe | the torrent is no longer in the client |
+| `usenet`, `direct` | safe or frees-nothing | no swarm, nothing owed |
+| `no-history` | unknown | no evidence at all |
+| `uncompared` | unknown | public torrent, files could not be compared |
+| `file-missing` | safe | the library file no longer exists |

@@ -138,6 +138,30 @@ jobs:
           path: internal/webassets/dist
       - run: scripts/integration.sh "${{ matrix.app }}" "${{ matrix.image }}" "${{ matrix.port }}"
 
+  # qBittorrent releases with different WebAPI shapes: 4.3 (no private flag,
+  # no seeding_time in the list), 4.6 (is_private in properties) and 5.x
+  # (private in the list, 204 login). Each run also reads the release's real
+  # BT_backup with the libtorrent resume reader.
+  integration-qbittorrent:
+    name: integration-qbittorrent-${{ matrix.release }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - release: "4.3"
+            image: lscr.io/linuxserver/qbittorrent:14.3.9.99202110311443-7435-01519b5e7ubuntu20.04.1-ls166
+          - release: "4.6"
+            image: lscr.io/linuxserver/qbittorrent:4.6.7-r0-ls353
+          - release: "5"
+            image: lscr.io/linuxserver/qbittorrent:5.2.4_v2.0.15-ls479
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version-file: go.mod
+      - run: scripts/integration-qbittorrent.sh "${{ matrix.image }}"
+
   # Known vulnerabilities in the Go module graph that the code actually calls.
   govulncheck:
     name: govulncheck
@@ -194,7 +218,7 @@ jobs:
   ci-ok:
     name: ci-ok
     if: always()
-    needs: [web, lint, test, build, docker, integration, govulncheck, gitleaks, trivy]
+    needs: [web, lint, test, build, docker, integration, integration-qbittorrent, govulncheck, gitleaks, trivy]
     runs-on: ubuntu-latest
     steps:
       - name: All jobs passed

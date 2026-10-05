@@ -15,10 +15,14 @@ type Torrent struct {
 	Tracker     string
 	Ratio       float64
 	SeedingTime time.Duration
-	State       string
-	ContentPath string
-	SavePath    string
-	Category    string
+	// SeedingTimeUnknown is true when the list call did not carry the
+	// seeding time (qBittorrent before 4.4 has it only per torrent); ask
+	// SeedTimer for the real value before judging an obligation.
+	SeedingTimeUnknown bool
+	State              string
+	ContentPath        string
+	SavePath           string
+	Category           string
 }
 
 // TorrentClient is a torrent download client: qBittorrent, Transmission,
@@ -32,6 +36,12 @@ type TorrentClient interface {
 	Private(ctx context.Context, hash string) (bool, error)
 	// Trackers returns every announce URL of a torrent.
 	Trackers(ctx context.Context, hash string) ([]string, error)
+}
+
+// SeedTimer is implemented by clients whose list call may lack the seeding
+// time; it reads it for one torrent.
+type SeedTimer interface {
+	SeedingTime(ctx context.Context, hash string) (time.Duration, error)
 }
 
 // UsenetJob is a finished Usenet download.

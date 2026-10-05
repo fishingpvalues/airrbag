@@ -653,9 +653,10 @@ func (s *Server) refuse(w http.ResponseWriter, r *http.Request, keep, unknown []
 	s.o.Log.Warn("guard blocked delete", "path", r.URL.Path,
 		"keep", len(keep), "unknown", len(unknown), "reason", reason)
 	s.o.Metrics.Add("airrbag_guard_blocked_total", 1, "instance", s.o.Name, "reason", reason)
-	description := "Deleting now ends a private-tracker seed whose obligation is not met: a hit-and-run."
+	var description string
 	if len(keep) > 0 {
 		msg = KeepMessage(keep)
+		description = KeepDescription(keep)
 		s.record(r, hub.Blocked, "a private seed is still owed", keep, "")
 	} else if s.o.Guard.UnknownMode() == config.UnknownConfirm {
 		description = "airrbag found no evidence of where these files came from. Confirm in the airrbag dialog to delete."

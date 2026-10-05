@@ -7,20 +7,55 @@ import (
 
 	"github.com/fishingpvalues/airrbag/internal/config"
 	"github.com/fishingpvalues/airrbag/internal/engine"
+	"github.com/fishingpvalues/airrbag/internal/verdict"
 )
 
 func i64(v int64) *int64 { return &v }
 
 func TestKeepMessage(t *testing.T) {
-	one := engine.FileVerdict{Tracker: "tracker.example", SeedingTime: i64(3*86400 + 3600), RequiredSeedTime: i64(14 * 86400)}
-	got := KeepMessage([]engine.FileVerdict{one})
-	want := "airrbag: kept, this file is the seeding data of a private torrent on tracker.example (seeded 3d 1h of 14d required). Delete the torrent first or confirm in the airrbag dialog."
-	if got != want {
-		t.Fatalf("\n got %q\nwant %q", got, want)
+	seeding := engine.FileVerdict{Cause: verdict.CauseSeedsFromFile, Tracker: "tracker.example",
+		SeedingTime: i64(3*86400 + 3600), RequiredSeedTime: i64(14 * 86400)}
+	cases := []struct {
+		name string
+		keep []engine.FileVerdict
+		want string
+	}{
+		{"seeds from file", []engine.FileVerdict{seeding},
+			"airrbag: kept, this file is the seeding data of a private torrent on tracker.example (seeded 3d 1h of 14d required). Delete the torrent first, or confirm in the airrbag dialog."},
+		{"client unreachable", []engine.FileVerdict{{Cause: verdict.CauseClientUnreachable, UnreachableClients: []string{"qBittorrent"}}},
+			"airrbag: kept, airrbag can't reach qBittorrent, so it can't rule out that this file belongs to a seeding torrent. Bring the torrent client back, or confirm in the airrbag dialog."},
+		{"two clients unreachable", []engine.FileVerdict{{Cause: verdict.CauseClientUnreachable, UnreachableClients: []string{"qB", "Deluge"}}},
+			"airrbag: kept, airrbag can't reach qB and Deluge, so it can't rule out that this file belongs to a seeding torrent. Bring the torrent client back, or confirm in the airrbag dialog."},
+		{"torrent evidence", []engine.FileVerdict{{Cause: verdict.CauseTorrentEvidence, Indexer: "PrivateHD"}},
+			"airrbag: kept, this file came from a torrent (PrivateHD), and airrbag can't check whether that torrent still has to seed. Confirm in the airrbag dialog to delete anyway."},
+		{"private uncompared", []engine.FileVerdict{{Cause: verdict.CausePrivateUncompared, Tracker: "t.example"}},
+			"airrbag: kept, this file belongs to a private torrent that is still owed on t.example, and airrbag could not compare the torrent's files with it. Delete the torrent first, or confirm in the airrbag dialog."},
+		{"no cause", []engine.FileVerdict{{}},
+			"airrbag: kept, this file is protected. Confirm in the airrbag dialog to delete anyway."},
+		{"none", nil, "airrbag: blocked. Confirm in the airrbag dialog to delete anyway."},
+		{"plural", []engine.FileVerdict{seeding, {}},
+			"airrbag: kept 2 files. The first: this file is the seeding data of a private torrent on tracker.example (seeded 3d 1h of 14d required). Delete the torrent first, or confirm in the airrbag dialog."},
 	}
-	got = KeepMessage([]engine.FileVerdict{{Tracker: "a.example", SeedingTime: i64(600)}, {}})
-	if !strings.HasPrefix(got, "airrbag: kept, 2 files") || !strings.Contains(got, "seeded 10m, requirement unknown") {
-		t.Fatalf("plural: %q", got)
+	for _, c := range cases {
+		if got := KeepMessage(c.keep); got != c.want {
+			t.Errorf("%s:\n got %q\nwant %q", c.name, got, c.want)
+		}
+	}
+	// A client-down keep must never claim to be seeding data.
+	if got := KeepMessage(cases[1].keep); strings.Contains(got, "seeding data") {
+		t.Fatalf("client-down message claims seeding data: %q", got)
+	}
+}
+
+func TestKeepDescription(t *testing.T) {
+	for cause, want := range map[verdict.Cause]string{
+		verdict.CauseSeedsFromFile:     "hit-and-run",
+		verdict.CauseClientUnreachable: "could not be asked",
+		verdict.CauseTorrentEvidence:   "cannot check",
+	} {
+		if got := KeepDescription([]engine.FileVerdict{{Cause: cause}}); !strings.Contains(got, want) {
+			t.Errorf("%s: %q lacks %q", cause, got, want)
+		}
 	}
 }
 

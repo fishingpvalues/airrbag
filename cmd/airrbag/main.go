@@ -24,6 +24,7 @@ import (
 	"github.com/fishingpvalues/airrbag/internal/clients/deluge"
 	"github.com/fishingpvalues/airrbag/internal/clients/nzbhydra"
 	"github.com/fishingpvalues/airrbag/internal/clients/qbittorrent"
+	"github.com/fishingpvalues/airrbag/internal/clients/resume"
 	"github.com/fishingpvalues/airrbag/internal/clients/rtorrent"
 	"github.com/fishingpvalues/airrbag/internal/clients/sabnzbd"
 	"github.com/fishingpvalues/airrbag/internal/clients/transmission"
@@ -151,6 +152,19 @@ func (p *clientPool) torrentClient(typ string, cfg config.Client, url string) cl
 	default:
 		c = qbittorrent.New(url, cfg.Username, cfg.Password, 30*time.Second, rt)
 	}
+	p.torrent[key] = c
+	return c
+}
+
+// resume returns the on-disk libtorrent resume reader for cfg.Path.
+func (p *clientPool) resume(cfg config.Client) clients.TorrentClient {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	key := "resume|" + cfg.Path + "|" + cfg.Layout + "|" + cfg.SavePath
+	if c, ok := p.torrent[key]; ok {
+		return c
+	}
+	c := resume.New(cfg.Path, cfg.Layout, cfg.SavePath)
 	p.torrent[key] = c
 	return c
 }
@@ -395,6 +409,12 @@ func startInstance(ctx context.Context, cfg *config.Config, inst config.Instance
 				name = "Xunlei"
 			}
 			direct = append(direct, engine.DirectSource{Name: name, Root: cc.Path})
+		case "libtorrent-resume":
+			name := cc.Name
+			if name == "" {
+				name = "resume:" + cc.Path
+			}
+			tor[name] = pool.resume(cc)
 		}
 	}
 	eng := engine.New(engine.Options{
