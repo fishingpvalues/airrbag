@@ -22,7 +22,18 @@
 airrbag is a reverse proxy in front of [Sonarr](https://sonarr.tv),
 [Radarr](https://radarr.video), [Lidarr](https://lidarr.audio), Readarr and
 Whisparr. It adds a source badge to every file (Usenet, public torrent,
-private torrent) and checks every delete against the seed behind the file.
+private torrent, direct download, library file) and checks every delete
+against the seed behind the file.
+
+In short: if you seed on private trackers and let Sonarr or Radarr hardlink
+or import your downloads, deleting a movie, episode or album in the *Arr can
+silently delete the data a torrent is still seeding, which counts as a
+hit-and-run and costs ratio or the account. airrbag sits in front of the
+*Arr's web UI and API, compares each library file's inode with the files of
+every torrent in qBittorrent, Transmission, Deluge or rTorrent, and refuses
+the delete (HTTP 409, with a confirmation dialog in the UI) while the seed is
+still owed. Nothing to install in the *Arr, no browser extension, no write
+access to the media.
 
 ## Why
 
@@ -91,7 +102,7 @@ tracker rules and the guard's modes, is in
 
 ## Supported
 
-- **\*Arrs**: Radarr, Sonarr, Lidarr, Readarr, Whisparr
+- **\*Arrs**: Radarr, Sonarr, Lidarr, Readarr, Whisparr 2 and 3
 - **Torrent clients**: qBittorrent 4.1 to 5.x, Transmission 3 and 4, Deluge 2,
   rTorrent 0.9+, and resume data read from disk for when a client's API is
   down or missing: qBittorrent's `BT_backup` or SQLite `torrents.db`
@@ -159,6 +170,34 @@ qBittorrent).
 - [API](docs/API.md): routes, the verdict JSON, the 409 refusal
 - [Troubleshooting](docs/TROUBLESHOOTING.md)
 - [Design notes](docs/DESIGN.md)
+
+## FAQ
+
+**Does airrbag delete or move anything?** No. It mounts the media
+read-only, only stats files, and either passes a delete through to the *Arr
+or refuses it.
+
+**Why do so many files say `Library`?** They have no download on record (a
+library scan, a manual import, or older than the *Arr's history). airrbag
+checked every torrent of every client and none uses those bytes, so deleting
+them cannot break a seed. `guard.standalone: unknown` asks before deleting
+them instead.
+
+**Does it work with cross-seed and hardlinks?** Yes. Hardlinks are what it
+compares: a library file that shares its inode with a torrent's file is
+`frees-nothing`, a file the torrent seeds from in place is `keep` while the
+tracker's seeding requirement is unmet.
+
+**Which Whisparr?** Both: Whisparr 2 (Sonarr-based, sites at
+`/site/<slug>`) and Whisparr 3 (Radarr-based).
+
+**What does it need from the torrent client?** Read access to its API, or
+to its resume data on disk (`BT_backup`, `torrents.db`, Deluge `state`) for
+when the API is down.
+
+**Where do the tracker rules come from?** A list of private trackers with
+their minimum seed time and ratio, in `airrbag.yml` or a JSON file; see
+[docs/CONFIGURATION.md](docs/CONFIGURATION.md).
 
 ## Compared with
 

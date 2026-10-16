@@ -132,6 +132,8 @@ export function FilesPage(props: { route: Route }) {
             <option value="usenet">Usenet</option>
             <option value="torrent">Torrent (public)</option>
             <option value="private">Torrent (private)</option>
+            <option value="direct">Direct download</option>
+            <option value="library">Library (no download on record)</option>
             <option value="unknown">Unknown</option>
           </select>
         </div>

@@ -342,13 +342,13 @@ type staleStore struct {
 func (s *staleStore) Degraded() (bool, string) { return s.why != "", s.why }
 
 // A degraded store's silence proves nothing: a file it does not know stays
-// keep, whatever guard.unknown says. A healthy store's silence leaves the
-// file unknown.
+// keep, whatever guard.unknown says. A healthy store's silence proves that
+// no torrent uses the file (standalone), which is safe by default.
 func TestEngineDegradedStoreFailsClosed(t *testing.T) {
 	for _, c := range []struct {
 		why  string
 		want verdict.Kind
-	}{{"BT_backup holds 383 torrents, the live client 1682", verdict.Keep}, {"", verdict.Unknown}} {
+	}{{"BT_backup holds 383 torrents, the live client 1682", verdict.Keep}, {"", verdict.Safe}} {
 		dir := setup(t)
 		lib := filepath.Join(dir, "library/new.mkv")
 		write(t, lib)
@@ -362,6 +362,30 @@ func TestEngineDegradedStoreFailsClosed(t *testing.T) {
 		}
 		if c.why != "" && (got[0].Cause != verdict.CauseClientUnreachable || !strings.Contains(Summary(got[0]), "out of date")) {
 			t.Errorf("cause %s, summary %q", got[0].Cause, Summary(got[0]))
+		}
+	}
+}
+
+// guard.standalone: unknown keeps a provably standalone file unknown, with
+// its own cause, for operators with torrent clients Airrbag cannot see.
+func TestEngineStandaloneUnknownMode(t *testing.T) {
+	dir := setup(t)
+	lib := filepath.Join(dir, "library/old.mkv")
+	write(t, lib)
+	fa := &fakeArr{files: map[int][]arr.File{1: {{ID: 1, ParentID: 1, Path: lib}}}}
+	qb := &fakeQB{torrents: map[string]clients.Torrent{}}
+	for _, c := range []struct {
+		unknown bool
+		want    verdict.Kind
+	}{{false, verdict.Safe}, {true, verdict.Unknown}} {
+		e := New(Options{Arr: fa, Torrent: map[string]clients.TorrentClient{"qB": qb},
+			Trackers: registry(t), FailClosed: true, StandaloneUnknown: c.unknown})
+		got, _ := e.ParentFiles(context.Background(), 1)
+		if got[0].Verdict != c.want || got[0].Cause != verdict.CauseStandalone || got[0].Protocol != verdict.ProtoLibrary {
+			t.Fatalf("standaloneUnknown=%v: got %s/%s/%s %v", c.unknown, got[0].Verdict, got[0].Cause, got[0].Protocol, got[0].Reasons)
+		}
+		if got[0].Source != "library" || got[0].Reason == "" {
+			t.Fatalf("presentation: %+v", got[0])
 		}
 	}
 }

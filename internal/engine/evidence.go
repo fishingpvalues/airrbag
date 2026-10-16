@@ -59,6 +59,15 @@ type evidence struct {
 	torrentInodes map[inodeKey]torrentRef
 	torrentNames  map[string]torrentRef
 	torrentsErr   []string
+	// torrentsSeen / torrentFilesSeen count what the inode walk covered;
+	// torrentsBlind names torrents whose data Airrbag cannot see (a content
+	// path no mapping covers and that does not exist as is); walkTruncated
+	// is set when the walk hit maxIndexedFiles. Any of the last two means
+	// the walk cannot prove that no torrent uses a given file.
+	torrentsSeen     map[string]bool // info hashes, across clients
+	torrentFilesSeen int
+	torrentsBlind    []string
+	walkTruncated    bool
 
 	// usenet: finished jobs by release name, and the folders they land in.
 	usenetNames map[string]string // name -> client
@@ -148,6 +157,7 @@ func (e *Engine) buildEvidence(ctx context.Context) *evidence {
 		usenetNames:  map[string]string{},
 		indexerNames: map[string]clients.IndexerDownload{},
 		directInodes: map[inodeKey]string{}, directNames: map[string]string{},
+		torrentsSeen: map[string]bool{},
 	}
 	budget := maxIndexedFiles
 	e.indexTorrents(ctx, ev, &budget)
@@ -163,6 +173,7 @@ func (e *Engine) indexTorrents(ctx context.Context, ev *evidence, budget *int) {
 		names = append(names, n)
 	}
 	sort.Strings(names)
+	walked := map[string]bool{}
 	for _, n := range names {
 		s := e.snapshot(ctx, n, e.o.Torrent[n])
 		if s.err != nil {
@@ -181,10 +192,27 @@ func (e *Engine) indexTorrents(ctx context.Context, ev *evidence, budget *int) {
 			if k := normName(t.Name); k != "" {
 				ev.torrentNames[k] = ref
 			}
-			if t.ContentPath == "" || *budget <= 0 {
+			if *budget <= 0 {
+				ev.walkTruncated = true
 				continue
 			}
-			e.walkInodes(ctx, e.o.Mapper.Local(t.ContentPath, src), budget, func(k inodeKey, p string, size int64) {
+			root, blind := e.contentRoot(n, t, src)
+			if blind != "" {
+				ev.torrentsBlind = append(ev.torrentsBlind, blind)
+			}
+			if root == "" {
+				continue
+			}
+			ev.torrentsSeen[h] = true
+			// A resume store lists the same torrents as its live client: walk
+			// each content root once. Clients are visited in name order, so the
+			// inodes stay attributed to the first client that has the torrent.
+			if walked[root] {
+				continue
+			}
+			walked[root] = true
+			ok := e.walkInodes(ctx, root, budget, func(k inodeKey, p string, size int64) {
+				ev.torrentFilesSeen++
 				ev.torrentInodes[k] = ref
 				// A big file's own name inside a pack is usually a release
 				// name too; small files (tracks, extras) have generic names.
@@ -196,8 +224,41 @@ func (e *Engine) indexTorrents(ctx context.Context, ev *evidence, budget *int) {
 					}
 				}
 			})
+			if !ok {
+				ev.torrentsBlind = append(ev.torrentsBlind, n+": "+t.Name+" (content not fully readable)")
+			}
 		}
 	}
+}
+
+// contentRoot is where a torrent's data lives in Airrbag's view, or "" when
+// there is nothing to walk. blind is set when the data may exist but cannot
+// be seen, so the walk cannot rule the torrent out.
+func (e *Engine) contentRoot(client string, t clients.Torrent, src paths.Source) (root, blind string) {
+	content := t.ContentPath
+	if content == "" && t.SavePath != "" && t.Name != "" {
+		content = path.Join(t.SavePath, t.Name)
+	}
+	if content == "" {
+		// No idea where its data lives: it could be anywhere.
+		return "", client + ": " + t.Name + " (no content path)"
+	}
+	root = e.o.Mapper.Local(content, src)
+	fi, err := e.o.Stat.Stat(root)
+	if err != nil {
+		// Unreadable is not absent.
+		return "", client + ": " + t.Name + " (" + err.Error() + ")"
+	}
+	if !fi.Exists {
+		// Mapped but absent: the client lost its data (or has not downloaded
+		// it yet), so it seeds from nothing. Unmapped and absent: a path
+		// Airrbag cannot see at all.
+		if !e.o.Mapper.Covered(content, src) {
+			return "", client + ": " + t.Name
+		}
+		return "", ""
+	}
+	return root, ""
 }
 
 func (e *Engine) indexUsenet(ctx context.Context, ev *evidence) {
@@ -246,7 +307,7 @@ func (e *Engine) indexIndexers(ctx context.Context, ev *evidence) {
 
 func (e *Engine) indexDirect(ctx context.Context, ev *evidence, budget *int) {
 	for _, ds := range e.o.Direct {
-		e.walkInodes(ctx, ds.Root, budget, func(k inodeKey, p string, _ int64) {
+		_ = e.walkInodes(ctx, ds.Root, budget, func(k inodeKey, p string, _ int64) {
 			ev.directInodes[k] = ds.Name
 			for _, n := range []string{normName(path.Base(p)), normName(path.Base(path.Dir(p)))} {
 				if n != "" {
@@ -257,34 +318,53 @@ func (e *Engine) indexDirect(ctx context.Context, ev *evidence, budget *int) {
 	}
 }
 
-// walkInodes stats every regular file at or below root.
-func (e *Engine) walkInodes(ctx context.Context, root string, budget *int, add func(inodeKey, string, int64)) {
+// walkInodes stats every regular file at or below root. It reports false
+// when the walk did not see everything: an unreadable directory or file, a
+// canceled context, or the budget running out. Only a complete walk may be
+// used to conclude that no torrent holds a given inode.
+func (e *Engine) walkInodes(ctx context.Context, root string, budget *int, add func(inodeKey, string, int64)) bool {
+	complete := true
 	visit := func(p string) {
 		if *budget <= 0 {
+			complete = false
 			return
 		}
 		fi, err := e.o.Stat.Stat(p)
-		if err != nil || !fi.Exists {
+		if err != nil {
+			complete = false
 			return
+		}
+		if !fi.Exists {
+			return // removed between the directory read and the stat
 		}
 		*budget--
 		add(inodeKey{fi.Dev, fi.Ino}, p, fi.Size)
 	}
-	_ = filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
-		if err != nil || ctx.Err() != nil || *budget <= 0 {
-			if d != nil && d.IsDir() && err != nil {
+	err := filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
+		if ctx.Err() != nil || *budget <= 0 {
+			complete = false
+			return fs.SkipAll
+		}
+		if err != nil {
+			complete = false
+			if d != nil && d.IsDir() {
 				return fs.SkipDir
-			}
-			if ctx.Err() != nil || *budget <= 0 {
-				return fs.SkipAll
 			}
 			return nil
 		}
 		if d.Type().IsRegular() {
 			visit(p)
+		} else if d.Type()&fs.ModeSymlink != 0 {
+			// WalkDir does not follow links; a torrent whose content is a
+			// symlink keeps its bytes somewhere this walk does not look.
+			complete = false
 		}
 		return nil
 	})
+	if err != nil {
+		complete = false
+	}
+	return complete
 }
 
 func (ev *evidence) usenetDirFor(local string) (string, bool) {

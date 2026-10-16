@@ -27,6 +27,8 @@
 .ab-s-usenet { --c: #5d9cec; }
 .ab-s-torrent { --c: #ff902b; }
 .ab-s-private { --c: #f05050; }
+.ab-s-direct { --c: #1db79e; }
+.ab-s-library { --c: #8a9ba8; }
 .ab-s-unknown { --c: #7a7a7a; }
 .ab-k-success { --c: #27c24c; }
 .ab-k-warning { --c: #ffa500; }

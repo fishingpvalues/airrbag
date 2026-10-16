@@ -4,12 +4,14 @@
 
 import type { FileVerdict, Verdict } from "../types";
 
-export type Source = "usenet" | "torrent" | "private" | "unknown";
+export type Source = "usenet" | "torrent" | "private" | "direct" | "library" | "unknown";
 
 export const COLORS: Record<Verdict | Source, string> = {
   usenet: "#5d9cec",
   torrent: "#ff902b",
   private: "#f05050",
+  direct: "#1db79e",
+  library: "#8a9ba8",
   unknown: "#7a7a7a",
   keep: "#f05050",
   "frees-nothing": "#a46bd6",
@@ -27,19 +29,32 @@ export const VERDICT_HELP: Record<Verdict, string> = {
   keep: "Private seed still owed: deleting is a hit-and-run",
   "frees-nothing": "Hardlink of a running seed: safe, but no space is freed",
   safe: "No seed is owed: deleting frees the space",
-  unknown: "No download history, or the client could not be asked",
+  unknown: "No download history, and no proof that no seed uses the file",
 };
 
 export const SOURCE_LABEL: Record<Source, string> = {
   usenet: "Usenet",
   torrent: "Torrent",
   private: "Private",
+  direct: "Direct",
+  library: "Library",
   unknown: "Unknown",
+};
+
+export const SOURCE_HELP: Record<Source, string> = {
+  usenet: "Downloaded over Usenet",
+  torrent: "Downloaded from a public torrent",
+  private: "Downloaded from a private tracker",
+  direct: "Downloaded by a direct downloader, no swarm",
+  library: "No download on record, and no torrent in any client uses this file",
+  unknown: "Origin not proven",
 };
 
 export function sourceOf(f: Pick<FileVerdict, "protocol" | "private">): Source {
   if (f.protocol === "usenet") return "usenet";
   if (f.protocol === "torrent") return f.private ? "private" : "torrent";
+  if (f.protocol === "direct") return "direct";
+  if (f.protocol === "library") return "library";
   return "unknown";
 }
 

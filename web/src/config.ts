@@ -27,11 +27,17 @@ const series: AppUI = {
   route: /\/series\/[^/]+\/?$/,
   anchors: ['[class*="SeriesDetails-header"]', '[class*="SeriesDetails-contentContainer"]'],
 };
+// Whisparr 2 is Sonarr's UI with series renamed to sites: the detail route is
+// /site/<titleSlug>, the CSS modules keep the SeriesDetails names.
+const site: AppUI = {
+  route: /\/site\/[^/]+\/?$/,
+  anchors: series.anchors,
+};
 
 export const APPS: Record<string, AppUI[]> = {
   radarr: [movie],
   sonarr: [series],
-  whisparr: [movie, series],
+  whisparr: [movie, site, series],
   lidarr: [
     {
       route: /\/artist\/[^/]+\/?$/,

@@ -144,3 +144,11 @@ func TestLibtorrentResumeValidation(t *testing.T) {
 		}
 	}
 }
+
+func TestStandaloneMode(t *testing.T) {
+	for in, want := range map[string]string{"": StandaloneSafe, "safe": StandaloneSafe, "Unknown": StandaloneUnknown} {
+		if got := (Guard{Standalone: in}).StandaloneMode(); got != want {
+			t.Errorf("StandaloneMode(%q) = %q, want %q", in, got, want)
+		}
+	}
+}

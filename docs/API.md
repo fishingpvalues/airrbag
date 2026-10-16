@@ -79,7 +79,7 @@ Every endpoint that returns files returns this object per file.
 | Field | Values | Meaning |
 |-------|--------|---------|
 | `verdict` | `keep`, `frees-nothing`, `safe`, `unknown` | What deleting the file does; see the README |
-| `protocol` | `torrent`, `usenet`, `direct`, `unknown` | How the file was downloaded. `direct` is a downloader with no swarm (Xunlei) |
+| `protocol` | `torrent`, `usenet`, `direct`, `library`, `unknown` | How the file was downloaded. `direct` is a downloader with no swarm (Xunlei). `library` means no download on record, and no torrent of any client uses the file (see `guard.standalone`) |
 | `private` | bool | The torrent, its tracker or its indexer is private |
 | `relation` | `same-path`, `hardlink`, `copy`, `none`, `unknown` | The library file compared with the torrent's files |
 | `reasons` | string list | Every rule that fired, in order |
@@ -87,7 +87,7 @@ Every endpoint that returns files returns this object per file.
 | `evidence` | string list | How the protocol was proven: history, inode match, import folder, client history, indexer proxy, name match. Never empty |
 | `severity` | `danger`, `warning`, `info`, `ok` | `keep`, `unknown`, `frees-nothing`, `safe`. For badge and dialog styling |
 | `needsConfirm` | bool | Ask before deleting: always for `keep`; for `unknown` unless `guard.unknown` is `allow` |
-| `source` | string | The client or folder the evidence came from |
+| `source` | string | The client or folder the evidence came from; `library` for a standalone file |
 
 `indexer`, `client`, `tracker`, `ratio`, `seedingTimeSeconds`, `torrentName`
 and `torrentState` are present only when known.

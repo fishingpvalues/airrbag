@@ -80,6 +80,18 @@ stops at the first hit:
 Names are weaker than inodes, so short or generic names (under 12
 characters, one word) never match.
 
+**No download on record is not the same as unknown.** Most files without
+evidence were there before the *Arr (a library scan, a migration, a manual
+copy). Their origin cannot be recovered, but what a delete does can: a
+torrent client seeds from a path, so a file with a single link that lies
+outside every torrent's content, and whose inode no torrent file of any
+reachable client shares, cannot be the data of any seed. Airrbag proves this
+only when the inode walk covered every client completely (no client down or
+stale, no torrent under an unmapped path, no truncated walk), labels such a
+file `library`, and calls it `safe` unless `guard.standalone` is `unknown`.
+The remaining risk is a torrent client airrbag is not told about, which is
+the same assumption "torrent no longer in the client" already makes.
+
 **Unknown is not safe, and torrent evidence is never unknown.** "We don't
 know where it came from" used to mean "allow". For a torrent download whose
 seed cannot be seen (client down, files unreadable) that is exactly the

@@ -59,7 +59,10 @@ type Client struct {
 	cache map[string]cached // file path -> parsed, keyed by mtime+size
 	last  map[string]entry  // hash -> entry, from the last Snapshot
 
-	// qbittorrent-sqlite only.
+	// qbittorrent-sqlite only. snapMu serializes the snapshot copy: every
+	// instance shares this Client, and three concurrent copies of a 130 MB
+	// database plus WAL filled a 512 MB /tmp ("no space left on device").
+	snapMu      sync.Mutex
 	tmpDir      string
 	minInterval time.Duration
 	sqlEntries  map[string]entry

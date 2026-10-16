@@ -8,7 +8,7 @@ export interface FileVerdict {
   relativePath?: string;
   size: number;
   verdict: Verdict;
-  protocol: "usenet" | "torrent" | "unknown";
+  protocol: "usenet" | "torrent" | "direct" | "library" | "unknown";
   private: boolean;
   relation: string;
   reasons: string[];

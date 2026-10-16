@@ -391,7 +391,10 @@ func newUnknownServer(t *testing.T, up *upstream, guard config.Guard, clientDown
 	}
 	reg, _ := trackers.New(config.Trackers{})
 	eng := engine.New(engine.Options{Instance: "radarr", Arr: fa, Torrent: map[string]clients.TorrentClient{"qB": qb},
-		Trackers: reg, FailClosed: true, UnknownMode: guard.UnknownMode()})
+		Trackers: reg, FailClosed: true, UnknownMode: guard.UnknownMode(),
+		// The file has no torrent and one link, which is provably standalone;
+		// keep it unknown so these tests exercise guard.unknown.
+		StandaloneUnknown: true})
 	u, _ := url.Parse(up.srv.URL)
 	shape, _ := arr.ShapeFor("radarr", 6)
 	return New(Options{Name: "radarr", Upstream: u, Shape: shape, Status: arr.Status{Version: "6.0.0"},
@@ -560,5 +563,24 @@ func TestDashboardPageRedirects(t *testing.T) {
 	}
 	if rec := do(t, s, http.MethodGet, Prefix+"/nope", "", nil); rec.Code != http.StatusNotFound {
 		t.Errorf("unknown page: %d, want 404", rec.Code)
+	}
+}
+
+// Whisparr 2 is Sonarr-based, and its UI routes a series ("site") as
+// /site/<slug>; resolving that route used to answer parentId 0, so no
+// badges ever appeared in Whisparr.
+func TestResolveWhisparrSiteRoute(t *testing.T) {
+	up := newUpstream(t)
+	shape, _ := arr.ShapeFor("whisparr", 2)
+	s := newServerWith(t, up, config.Guard{}, func(o *Options) { o.Shape = shape })
+	for path, want := range map[string]string{
+		"/site/kept-movie":   `"parentId":1`,
+		"/series/kept-movie": `"parentId":1`,
+		"/movie/kept-movie":  `"parentId":0`,
+	} {
+		rec := do(t, s, http.MethodGet, "/__airrbag/api/resolve?path="+path, "", nil)
+		if !strings.Contains(rec.Body.String(), want) {
+			t.Errorf("resolve %s: %s, want %s", path, rec.Body, want)
+		}
 	}
 }
