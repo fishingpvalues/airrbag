@@ -400,7 +400,16 @@ func (s *Server) targetVerdicts(ctx context.Context, t Target) ([]engine.FileVer
 }
 
 // detailRoutes are the UI routes of a parent's detail page per app.
-var detailRoutes = regexp.MustCompile(`/(movie|series|artist|author|album)/([^/?#]+)`)
+// Whisparr 2 is Sonarr-based but routes its series ("sites") as /site/<slug>.
+var detailRoutes = regexp.MustCompile(`/(movie|series|site|artist|author|album)/([^/?#]+)`)
+
+// routeParent maps a detail route's kind to the parent it names.
+func routeParent(kind string) string {
+	if kind == "site" {
+		return "series"
+	}
+	return kind
+}
 
 func (s *Server) serveOwn(w http.ResponseWriter, r *http.Request, rest string) {
 	setBaseSecurityHeaders(w)
@@ -570,7 +579,7 @@ func (s *Server) apiResolve(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]any{"parentId": artistID, "albumId": albumID})
 		return
 	}
-	if m == nil || m[1] != s.o.Shape.Parent {
+	if m == nil || routeParent(m[1]) != s.o.Shape.Parent {
 		writeJSON(w, http.StatusOK, map[string]any{"parentId": 0})
 		return
 	}
