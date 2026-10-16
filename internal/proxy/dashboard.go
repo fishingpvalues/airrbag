@@ -213,13 +213,17 @@ func Source(f engine.FileVerdict) string {
 			return "private"
 		}
 		return "torrent"
+	case verdict.ProtoDirect:
+		return "direct"
+	case verdict.ProtoLibrary:
+		return "library"
 	default:
 		return "unknown"
 	}
 }
 
 var verdictRank = map[verdict.Kind]int{verdict.Keep: 0, verdict.FreesNothing: 1, verdict.Unknown: 2, verdict.Safe: 3}
-var sourceRank = map[string]int{"private": 0, "torrent": 1, "usenet": 2, "unknown": 3}
+var sourceRank = map[string]int{"private": 0, "torrent": 1, "usenet": 2, "direct": 3, "library": 4, "unknown": 5}
 
 func fptr(p *float64) float64 {
 	if p == nil {

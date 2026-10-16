@@ -74,7 +74,28 @@ func TestEvidenceChain(t *testing.T) {
 			build: func(t *testing.T, e *env) {
 				e.lib = write(t, filepath.Join(e.dir, "lib", "Movie (2010)", "movie.mkv"))
 			},
-			want: verdict.Unknown, proto: verdict.ProtoUnknown, evidence: "no torrent, Usenet job",
+			// Every torrent was walked, none shares the inode, and the file is
+			// its only link: no seed can use it, whatever its origin.
+			want: verdict.Safe, proto: verdict.ProtoLibrary, evidence: "no download on record",
+		},
+		{
+			name: "standalone, but a hardlink elsewhere",
+			build: func(t *testing.T, e *env) {
+				e.lib = write(t, filepath.Join(e.dir, "lib", "Movie (2010)", "movie.mkv"))
+				if err := os.Link(e.lib, filepath.Join(e.dir, "elsewhere.mkv")); err != nil {
+					t.Fatal(err)
+				}
+			},
+			want: verdict.FreesNothing, proto: verdict.ProtoUnknown, evidence: "no torrent, Usenet job",
+		},
+		{
+			name: "a torrent under an unmapped path blocks the standalone proof",
+			build: func(t *testing.T, e *env) {
+				e.lib = write(t, filepath.Join(e.dir, "lib", "Movie (2010)", "movie.mkv"))
+				e.torrents = map[string]clients.Torrent{h: {Hash: h, Name: "Other.Release.2011.1080p-GRP",
+					ContentPath: "/nowhere/Other.Release.2011.1080p-GRP"}}
+			},
+			want: verdict.Unknown, proto: verdict.ProtoUnknown, evidence: "no path_mappings rule covers",
 		},
 		{
 			name: "inode: hardlink of a private seed",

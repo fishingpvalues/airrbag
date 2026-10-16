@@ -168,6 +168,12 @@ type Guard struct {
 	// A file with any torrent evidence is never "unknown" for the guard: it
 	// is kept, whatever this says.
 	Unknown string `yaml:"unknown"`
+	// Standalone decides the verdict of a file with no download on record
+	// that is provably not the data of any torrent (one link, outside every
+	// torrent's content, no torrent file of any reachable client with its
+	// inode): "safe" (default) or "unknown". Use "unknown" when torrent
+	// clients exist that Airrbag is not told about.
+	Standalone string `yaml:"standalone"`
 }
 
 // Auth decides who may call Airrbag's endpoints and how the real client
@@ -222,6 +228,20 @@ func (g Guard) UnknownMode() string {
 	default:
 		return UnknownConfirm
 	}
+}
+
+// Standalone modes for Guard.Standalone.
+const (
+	StandaloneSafe    = "safe"
+	StandaloneUnknown = "unknown"
+)
+
+// StandaloneMode returns the effective standalone mode (default safe).
+func (g Guard) StandaloneMode() string {
+	if strings.EqualFold(strings.TrimSpace(g.Standalone), StandaloneUnknown) {
+		return StandaloneUnknown
+	}
+	return StandaloneSafe
 }
 
 // GuardEnabled reports whether the guard is on (default true).
@@ -384,6 +404,11 @@ func (c *Config) Validate() error {
 	case "", UnknownConfirm, UnknownBlock, UnknownAllow:
 	default:
 		errs = append(errs, fmt.Errorf("guard.unknown must be confirm, block or allow, not %q", c.Guard.Unknown))
+	}
+	switch strings.ToLower(strings.TrimSpace(c.Guard.Standalone)) {
+	case "", StandaloneSafe, StandaloneUnknown:
+	default:
+		errs = append(errs, fmt.Errorf("guard.standalone must be safe or unknown, not %q", c.Guard.Standalone))
 	}
 	if c.Guard.GrantTTL.Duration > 10*time.Minute {
 		errs = append(errs, errors.New("guard.grant_ttl must be at most 10m"))

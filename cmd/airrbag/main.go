@@ -491,7 +491,9 @@ func startInstance(ctx context.Context, cfg *config.Config, inst config.Instance
 	eng := engine.New(engine.Options{
 		Instance: inst.Name, Arr: ac, Torrent: tor, Usenet: use, Indexers: indexers, Direct: direct,
 		Mapper: mapper, Trackers: reg, Stat: fsx.OS{}, FailClosed: cfg.Guard.FailClosedEnabled(),
-		UnknownMode: cfg.Guard.UnknownMode(), TTL: cfg.CacheTTL.Duration, HistoryLimit: cfg.HistoryLimit, Log: log,
+		UnknownMode:       cfg.Guard.UnknownMode(),
+		StandaloneUnknown: cfg.Guard.StandaloneMode() == config.StandaloneUnknown,
+		TTL:               cfg.CacheTTL.Duration, HistoryLimit: cfg.HistoryLimit, Log: log,
 	})
 	health := healthFunc(tor, use)
 	g.set(proxy.New(proxy.Options{

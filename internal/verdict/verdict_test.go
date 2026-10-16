@@ -31,6 +31,21 @@ func TestDecide(t *testing.T) {
 		private  bool
 	}{
 		{
+			name: "standalone library file is safe",
+			in:   Input{Path: "/lib/a.mkv", File: lib, Protocol: ProtoLibrary},
+			want: Safe, relation: "none",
+		},
+		{
+			name: "standalone library file stays unknown when asked to",
+			in:   Input{Path: "/lib/a.mkv", File: lib, Protocol: ProtoLibrary, StandaloneUnknown: true},
+			want: Unknown, relation: "none",
+		},
+		{
+			name: "library file that gained a hardlink frees nothing",
+			in:   Input{Path: "/lib/a.mkv", File: libLink, Protocol: ProtoLibrary},
+			want: FreesNothing, relation: "hardlink",
+		},
+		{
 			name: "usenet single link is safe",
 			in:   Input{Path: "/lib/a.mkv", File: lib, Protocol: ProtoUsenet},
 			want: Safe, relation: "none",

@@ -59,6 +59,15 @@ type evidence struct {
 	torrentInodes map[inodeKey]torrentRef
 	torrentNames  map[string]torrentRef
 	torrentsErr   []string
+	// torrentsSeen / torrentFilesSeen count what the inode walk covered;
+	// torrentsBlind names torrents whose data Airrbag cannot see (a content
+	// path no mapping covers and that does not exist as is); walkTruncated
+	// is set when the walk hit maxIndexedFiles. Any of the last two means
+	// the walk cannot prove that no torrent uses a given file.
+	torrentsSeen     map[string]bool // info hashes, across clients
+	torrentFilesSeen int
+	torrentsBlind    []string
+	walkTruncated    bool
 
 	// usenet: finished jobs by release name, and the folders they land in.
 	usenetNames map[string]string // name -> client
@@ -148,6 +157,7 @@ func (e *Engine) buildEvidence(ctx context.Context) *evidence {
 		usenetNames:  map[string]string{},
 		indexerNames: map[string]clients.IndexerDownload{},
 		directInodes: map[inodeKey]string{}, directNames: map[string]string{},
+		torrentsSeen: map[string]bool{},
 	}
 	budget := maxIndexedFiles
 	e.indexTorrents(ctx, ev, &budget)
@@ -163,6 +173,7 @@ func (e *Engine) indexTorrents(ctx context.Context, ev *evidence, budget *int) {
 		names = append(names, n)
 	}
 	sort.Strings(names)
+	walked := map[string]bool{}
 	for _, n := range names {
 		s := e.snapshot(ctx, n, e.o.Torrent[n])
 		if s.err != nil {
@@ -181,10 +192,33 @@ func (e *Engine) indexTorrents(ctx context.Context, ev *evidence, budget *int) {
 			if k := normName(t.Name); k != "" {
 				ev.torrentNames[k] = ref
 			}
-			if t.ContentPath == "" || *budget <= 0 {
+			if *budget <= 0 {
+				ev.walkTruncated = true
 				continue
 			}
-			e.walkInodes(ctx, e.o.Mapper.Local(t.ContentPath, src), budget, func(k inodeKey, p string, size int64) {
+			if t.ContentPath == "" {
+				continue
+			}
+			root := e.o.Mapper.Local(t.ContentPath, src)
+			if fi, err := e.o.Stat.Stat(root); err != nil || !fi.Exists {
+				// Mapped but absent: the client lost its data (or has not
+				// downloaded it yet), so it seeds from nothing. Unmapped and
+				// absent: a path Airrbag cannot see at all.
+				if !e.o.Mapper.Covered(t.ContentPath, src) {
+					ev.torrentsBlind = append(ev.torrentsBlind, n+": "+t.Name)
+				}
+				continue
+			}
+			ev.torrentsSeen[h] = true
+			// A resume store lists the same torrents as its live client: walk
+			// each content root once. Clients are visited in name order, so the
+			// inodes stay attributed to the first client that has the torrent.
+			if walked[root] {
+				continue
+			}
+			walked[root] = true
+			e.walkInodes(ctx, root, budget, func(k inodeKey, p string, size int64) {
+				ev.torrentFilesSeen++
 				ev.torrentInodes[k] = ref
 				// A big file's own name inside a pack is usually a release
 				// name too; small files (tracks, extras) have generic names.

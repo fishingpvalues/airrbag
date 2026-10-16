@@ -76,6 +76,21 @@ func (m *Mapper) Local(p string, src Source) string {
 	return p
 }
 
+// Covered reports whether a rule translates p from src's view, i.e. whether
+// Local(p, src) is a deliberate translation rather than the unchanged input.
+func (m *Mapper) Covered(p string, src Source) bool {
+	if p == "" {
+		return false
+	}
+	p = clean(p)
+	for _, r := range m.rules {
+		if m.applies(r, src) && (p == r.From || strings.HasPrefix(p, r.From+"/") || r.From == "/") {
+			return true
+		}
+	}
+	return false
+}
+
 // Within reports whether child is p itself or below it.
 func Within(child, parent string) bool {
 	if child == "" || parent == "" {

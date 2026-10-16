@@ -59,6 +59,7 @@ const (
 	CauseUncompared        Cause = "uncompared"
 	CauseClientUnreachable Cause = "client-unreachable"
 	CauseTorrentEvidence   Cause = "torrent-evidence"
+	CauseStandalone        Cause = "standalone"
 )
 
 // Protocol is how the file was downloaded.
@@ -69,7 +70,12 @@ const (
 	ProtoTorrent Protocol = "torrent"
 	// ProtoDirect is a plain download with no swarm to owe anything to
 	// (Xunlei's HTTP/cloud downloads, a configured direct-download folder).
-	ProtoDirect  Protocol = "direct"
+	ProtoDirect Protocol = "direct"
+	// ProtoLibrary is a file with no download on record (a library scan,
+	// a manual copy, a file older than the *Arr) that is provably not the
+	// data of any torrent: its only link, outside every torrent's content,
+	// and no torrent file of any reachable client shares its inode.
+	ProtoLibrary Protocol = "library"
 	ProtoUnknown Protocol = "unknown"
 )
 
@@ -121,6 +127,10 @@ type Input struct {
 	TorrentEvidence bool
 	// DirectSource names the direct-download source for ProtoDirect.
 	DirectSource string
+	// StandaloneUnknown keeps a ProtoLibrary file Unknown instead of Safe
+	// (guard.standalone: unknown), for operators who also run torrent
+	// clients Airrbag cannot see.
+	StandaloneUnknown bool
 }
 
 // Result is the verdict plus the facts behind it, for badges and tooltips.
@@ -185,6 +195,25 @@ func decide(in Input) Result {
 		return decideUnshared(res, in, "downloaded by "+src+": no swarm, no seeding obligation")
 	case ProtoTorrent:
 		return decideTorrent(res, in)
+	case ProtoLibrary:
+		res.Cause = CauseStandalone
+		if in.File.Nlink > 1 {
+			// The engine only sets ProtoLibrary for a single link; a second
+			// one appearing in between is someone else's bytes.
+			res.Verdict = FreesNothing
+			res.Relation = "hardlink"
+			res.Reasons = append(res.Reasons, "no download on record; another hardlink still holds these bytes")
+			res.Cause = CauseUnknownHardlink
+			return res
+		}
+		res.Relation = "none"
+		res.Reasons = append(res.Reasons, "no download on record, and no torrent in any client uses these bytes")
+		if in.StandaloneUnknown {
+			res.Verdict = Unknown
+			return res
+		}
+		res.Verdict = Safe
+		return res
 	default:
 		if in.File.Nlink > 1 {
 			res.Verdict = FreesNothing

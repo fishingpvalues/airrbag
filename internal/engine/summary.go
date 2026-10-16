@@ -64,6 +64,11 @@ func summary(fv FileVerdict) string {
 		return "downloaded over Usenet: no swarm, nothing owed"
 	case verdict.CauseDirect:
 		return "downloaded directly" + via(fv) + ": no swarm, nothing owed"
+	case verdict.CauseStandalone:
+		if fv.Verdict == verdict.Unknown {
+			return "no download on record, and no torrent in any client uses this file; guard.standalone asks before deleting it"
+		}
+		return "no download on record, and no torrent in any client uses this file: deleting it frees the space"
 	case verdict.CauseNoHistory:
 		return "airrbag can't prove where this file came from"
 	case verdict.CauseUncompared:
