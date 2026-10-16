@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.0](https://github.com/fishingpvalues/airrbag/compare/v0.6.0...v0.7.0) (2026-10-16)
+
+
+### Features
+
+* library verdict for standalone files, Whisparr 2 /site route, single SQLite snapshot ([#19](https://github.com/fishingpvalues/airrbag/issues/19)) ([b1e5833](https://github.com/fishingpvalues/airrbag/commit/b1e583397f5224b2e82724c1eadd6a2cf2e8ea8d))
+
 ## [0.6.0](https://github.com/fishingpvalues/airrbag/compare/v0.5.0...v0.6.0) (2026-10-05)
 
 
