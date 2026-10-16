@@ -349,6 +349,7 @@ func (e *Engine) Evaluate(ctx context.Context, f arr.File, idx *arr.Index) FileV
 		PrivateIndexer:    e.o.Trackers != nil && e.o.Trackers.PrivateIndexer(prov.Indexer),
 		FailClosed:        e.o.FailClosed,
 		StandaloneUnknown: e.o.StandaloneUnknown,
+		StatFailed:        statErr != nil && !errors.Is(statErr, fsx.ErrUnsupported),
 	}
 	fv := FileVerdict{FileID: f.ID, ParentID: f.ParentID, Path: f.Path, RelativePath: f.RelativePath,
 		Size: f.Size, Indexer: prov.Indexer, Client: prov.Client, Source: prov.Client}
@@ -452,7 +453,7 @@ func (e *Engine) gatherEvidence(ctx context.Context, in *verdict.Input, fv *File
 		fv.Evidence = append(fv.Evidence, "no torrent, Usenet job, indexer grab or download folder matches this file")
 		if n := len(ev.torrentsBlind); n > 0 {
 			fv.Evidence = append(fv.Evidence, fmt.Sprintf(
-				"%d torrent(s) keep their data under a path no path_mappings rule covers (%s), so a seed from this file cannot be ruled out",
+				"%d torrent(s) keep data airrbag cannot see (%s; an unmapped path needs a path_mappings rule), so a seed from this file cannot be ruled out",
 				n, ev.torrentsBlind[0]))
 		}
 	}

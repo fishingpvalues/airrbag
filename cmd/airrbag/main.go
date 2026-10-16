@@ -313,6 +313,9 @@ func discover(ctx context.Context, cfg *config.Config, c *arr.Client, pool *clie
 		default:
 			if strings.EqualFold(d.Protocol, "torrent") {
 				log.Warn("torrent client type not supported yet; its torrents count as unreachable", "client", d.Name, "implementation", d.Implementation)
+				// Listed as a client that cannot be asked, so no verdict
+				// concludes from a view that leaves its torrents out.
+				tor[d.Name] = unsupportedClient{impl: d.Implementation}
 			}
 		}
 	}
@@ -576,4 +579,21 @@ func detectionStatus(status string, d resume.Detection) string {
 		s = "degraded: " + d.Why + "; " + s
 	}
 	return s
+}
+
+// unsupportedClient stands in for a torrent client the *Arr uses but Airrbag
+// cannot talk to. Every call fails, so it counts as unreachable.
+type unsupportedClient struct{ impl string }
+
+func (u unsupportedClient) err() error {
+	return fmt.Errorf("torrent client type %s is not supported", u.impl)
+}
+
+func (u unsupportedClient) Snapshot(context.Context) (map[string]clients.Torrent, error) {
+	return nil, u.err()
+}
+func (u unsupportedClient) Files(context.Context, string) ([]string, error) { return nil, u.err() }
+func (u unsupportedClient) Private(context.Context, string) (bool, error)   { return false, u.err() }
+func (u unsupportedClient) Trackers(context.Context, string) ([]string, error) {
+	return nil, u.err()
 }

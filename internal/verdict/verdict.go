@@ -131,6 +131,10 @@ type Input struct {
 	// (guard.standalone: unknown), for operators who also run torrent
 	// clients Airrbag cannot see.
 	StandaloneUnknown bool
+	// StatFailed is true when the library file could not be stat'ed for a
+	// reason other than "does not exist" (permissions, I/O error). Such a
+	// file is never "missing", and nothing about its links is known.
+	StatFailed bool
 }
 
 // Result is the verdict plus the facts behind it, for badges and tooltips.
@@ -167,6 +171,12 @@ func Decide(in Input) Result {
 
 func decide(in Input) Result {
 	res := Result{Protocol: in.Protocol, Relation: "unknown"}
+	if in.StatFailed {
+		res.Verdict = Unknown
+		res.Cause = CauseUncompared
+		res.Reasons = append(res.Reasons, "the library file could not be read, so its links cannot be checked")
+		return res
+	}
 	if !in.File.Exists {
 		res.Verdict = Safe
 		res.Relation = "none"

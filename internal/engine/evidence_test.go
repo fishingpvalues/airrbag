@@ -95,7 +95,32 @@ func TestEvidenceChain(t *testing.T) {
 				e.torrents = map[string]clients.Torrent{h: {Hash: h, Name: "Other.Release.2011.1080p-GRP",
 					ContentPath: "/nowhere/Other.Release.2011.1080p-GRP"}}
 			},
-			want: verdict.Unknown, proto: verdict.ProtoUnknown, evidence: "no path_mappings rule covers",
+			want: verdict.Unknown, proto: verdict.ProtoUnknown, evidence: "airrbag cannot see",
+		},
+		{
+			name: "an unreadable folder inside a torrent blocks the standalone proof",
+			build: func(t *testing.T, e *env) {
+				e.lib = write(t, filepath.Join(e.dir, "lib", "Movie (2010)", "movie.mkv"))
+				if os.Geteuid() == 0 {
+					t.Skip("root reads a mode 000 folder")
+				}
+				seed := filepath.Join(e.dir, "seed", "Pack")
+				write(t, filepath.Join(seed, "locked", "a.mkv"))
+				if err := os.Chmod(filepath.Join(seed, "locked"), 0); err != nil {
+					t.Fatal(err)
+				}
+				t.Cleanup(func() { _ = os.Chmod(filepath.Join(seed, "locked"), 0o755) })
+				e.torrents = map[string]clients.Torrent{h: {Hash: h, Name: "Pack", ContentPath: seed}}
+			},
+			want: verdict.Unknown, proto: verdict.ProtoUnknown, evidence: "not fully readable",
+		},
+		{
+			name: "a torrent without any content path blocks the standalone proof",
+			build: func(t *testing.T, e *env) {
+				e.lib = write(t, filepath.Join(e.dir, "lib", "Movie (2010)", "movie.mkv"))
+				e.torrents = map[string]clients.Torrent{h: {Hash: h, Name: "Magnet"}}
+			},
+			want: verdict.Unknown, proto: verdict.ProtoUnknown, evidence: "no content path",
 		},
 		{
 			name: "inode: hardlink of a private seed",

@@ -13,6 +13,9 @@ import (
 // file is the seeding data of a private torrent" only when a torrent really
 // seeds from it, "can't reach qBittorrent" when a client was down.
 func Summary(fv FileVerdict) string {
+	if fv.Cause == verdict.CauseStandalone {
+		return standaloneSummary(fv)
+	}
 	s := summary(fv)
 	if s != "" && fv.Verdict == verdict.FreesNothing &&
 		fv.Cause != verdict.CauseHardlink && fv.Cause != verdict.CauseUnknownHardlink {
@@ -64,11 +67,6 @@ func summary(fv FileVerdict) string {
 		return "downloaded over Usenet: no swarm, nothing owed"
 	case verdict.CauseDirect:
 		return "downloaded directly" + via(fv) + ": no swarm, nothing owed"
-	case verdict.CauseStandalone:
-		if fv.Verdict == verdict.Unknown {
-			return "no download on record, and no torrent in any client uses this file; guard.standalone asks before deleting it"
-		}
-		return "no download on record, and no torrent in any client uses this file: deleting it frees the space"
 	case verdict.CauseNoHistory:
 		return "airrbag can't prove where this file came from"
 	case verdict.CauseUncompared:
@@ -137,4 +135,11 @@ func via(fv FileVerdict) string {
 		return " (" + fv.Source + ")"
 	}
 	return ""
+}
+
+func standaloneSummary(fv FileVerdict) string {
+	if fv.Verdict == verdict.Unknown {
+		return "no download on record, and no torrent in any client uses this file; guard.standalone asks before deleting it"
+	}
+	return "no download on record, and no torrent in any client uses this file: deleting it frees the space"
 }
