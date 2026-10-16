@@ -1,0 +1,37 @@
+# airrbag
+
+> Reverse proxy for Sonarr, Radarr, Lidarr, Readarr and Whisparr that shows
+> where every library file came from (Usenet, public torrent, private
+> tracker, direct download, library file) and refuses deletes that would
+> break a private-tracker seed (hit-and-run protection). Go, single static
+> binary, Apache-2.0.
+
+airrbag answers one question per library file: what happens to the bytes a
+torrent is still seeding if this file is deleted? It compares the file's
+device and inode with every file of every torrent in qBittorrent,
+Transmission, Deluge or rTorrent (or their resume data on disk), applies the
+private tracker's minimum seed time and ratio, and returns one of four
+verdicts: keep (deleting is a hit-and-run), frees-nothing (hardlink of a
+seed), safe, unknown. The *Arr UI gets source badges and a confirmation
+dialog; the API gets HTTP 409 for a delete that would end an owed seed.
+
+Use it when: you seed on private trackers, the *Arrs hardlink or import
+from the torrent client, and you want deleting from Sonarr/Radarr/Lidarr,
+or from tools such as Maintainerr pointed at airrbag, to be safe.
+
+## Docs
+
+- [README](https://github.com/fishingpvalues/airrbag/blob/main/README.md): install (Docker), minimal config, FAQ
+- [How it works](https://github.com/fishingpvalues/airrbag/blob/main/docs/HOW-IT-WORKS.md): evidence chain, verdicts, UI, guard
+- [Configuration](https://github.com/fishingpvalues/airrbag/blob/main/docs/CONFIGURATION.md): every key, path mappings, tracker rules, guard modes
+- [API](https://github.com/fishingpvalues/airrbag/blob/main/docs/API.md): routes, verdict JSON, 409 refusal
+- [Design](https://github.com/fishingpvalues/airrbag/blob/main/docs/DESIGN.md): decisions and safety rules
+- [Troubleshooting](https://github.com/fishingpvalues/airrbag/blob/main/docs/TROUBLESHOOTING.md)
+
+## Facts
+
+- Image: ghcr.io/fishingpvalues/airrbag (distroless, non-root, read-only root filesystem)
+- One listener per *Arr instance; open the listener instead of the *Arr's own port
+- Config: airrbag.yml with instances, clients, path_mappings, trackers, guard
+- Media mounted read-only; airrbag never deletes or moves files itself
+- Authentication is delegated to the *Arr (session cookie or API key)

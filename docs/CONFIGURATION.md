@@ -46,6 +46,7 @@ when a key or password is still a template value such as `changeme` or
 | `guard.dry_run` | `false` | Log instead of refusing |
 | `guard.fail_closed` | `true` | A check that cannot run (an *Arr or client error) answers 503 |
 | `guard.unknown` | `confirm` | Delete of a file with no provenance evidence: `confirm` asks once in the UI (a browser delete without the dialog's grant is refused) and lets API callers through with a WARN and `airrbag_unknown_deletes_total`; `block` refuses (409) without a grant; `allow` only shows the badge |
+| `guard.standalone` | `safe` | A file with no download on record that is provably not the data of any torrent (its only link, outside every torrent's content, and no torrent file of any reachable client shares its inode): `safe` lets it be deleted like any other safe file and labels it `Library`; `unknown` treats it like `guard.unknown`. Use `unknown` when torrent clients exist that airrbag is not configured for |
 | `guard.grant_ttl` | `60s` | Lifetime of a confirmation given in the dialog (max `10m`) |
 | `guard.allow_override_header` | `false` | Honor `X-Airrbag-Override` / `?airrbagOverride=` from signed-in API callers |
 | `auth.trusted_proxies[]` | none | CIDRs/IPs of reverse proxies in front; only from these is `X-Forwarded-For` believed |
