@@ -85,6 +85,10 @@ func (c *Client) scanSQLite(ctx context.Context) (map[string]entry, error) {
 	if err != nil {
 		return nil, fmt.Errorf("qbittorrent-sqlite %s: %w", wal, err)
 	}
+	// One copy at a time; a caller that waited here finds the copy the
+	// previous one just made in the cache below.
+	c.snapMu.Lock()
+	defer c.snapMu.Unlock()
 	c.mu.Lock()
 	cachedEntries, unchanged := c.sqlEntries, c.sqlDB == dbS && c.sqlWAL == walS
 	fresh := time.Since(c.sqlAt) < c.minInterval

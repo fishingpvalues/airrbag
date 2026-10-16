@@ -292,3 +292,49 @@ func TestSQLiteRejectsForeignDB(t *testing.T) {
 		t.Error("a database without the torrents table must be an error")
 	}
 }
+
+// Every *Arr instance shares one reader. Concurrent snapshots used to copy
+// the database once each, and three copies of a 130 MB torrents.db plus WAL
+// filled a 512 MB /tmp. One copy at a time, and the waiters reuse it.
+func TestSQLiteConcurrentSnapshotsCopyOnce(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "torrents.db")
+	rows, _, _ := rowsFor(t)
+	db := makeDB(t, path, schemaV9, 9, rows)
+	defer db.Close()
+	tmp := t.TempDir()
+	c := NewSQLite(path, tmp, time.Hour)
+	stop := make(chan struct{})
+	maxSeen := 0
+	var watch sync.WaitGroup
+	watch.Add(1)
+	go func() {
+		defer watch.Done()
+		for {
+			select {
+			case <-stop:
+				return
+			default:
+			}
+			if ents, _ := os.ReadDir(tmp); len(ents) > maxSeen {
+				maxSeen = len(ents)
+			}
+		}
+	}()
+	var wg sync.WaitGroup
+	for i := 0; i < 8; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if _, err := c.Snapshot(context.Background()); err != nil {
+				t.Error(err)
+			}
+		}()
+	}
+	wg.Wait()
+	close(stop)
+	watch.Wait()
+	if maxSeen > 1 {
+		t.Errorf("%d temp copies existed at once, want at most 1", maxSeen)
+	}
+}
